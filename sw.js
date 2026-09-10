@@ -1,5 +1,5 @@
 /* Service Worker игры «Самоцветы» — офлайн-режим и обновления */
-const CACHE = 'samotsvety-v16';
+const CACHE = 'samotsvety-v17';
 const SHELL = [
   './',
   './index.html',
