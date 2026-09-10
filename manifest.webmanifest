@@ -1,0 +1,18 @@
+{
+  "name": "Самоцветы — три в ряд",
+  "short_name": "Самоцветы",
+  "description": "Сочная головоломка три в ряд: каскады, молнии, бомбы, призмы и боссы. Классика и режим на время.",
+  "lang": "ru",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#081520",
+  "theme_color": "#081520",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
