@@ -1756,6 +1756,15 @@ function toggleSound(){Snd.on=!Snd.on;store.set('sv-snd',Snd.on?'1':'0');
   paintSound();if(Snd.on){Snd.init();Snd.tick();}}
 btnSound.addEventListener('click',toggleSound);
 $('#btnSoundSet').addEventListener('click',toggleSound);
+document.addEventListener('pointerdown',e=>{
+  const b=e.target.closest?e.target.closest('.btn'):null;
+  if(!b)return;
+  b.classList.add('pressed');
+  const off=()=>b.classList.remove('pressed');
+  b.addEventListener('pointerup',off,{once:true});
+  b.addEventListener('pointercancel',off,{once:true});
+  b.addEventListener('pointerleave',off,{once:true});
+},{passive:true});
 
 /* ========== никнейм при первом входе ========== */
 function maybeNick(){if(store.get('sv-nick-done'))return;
