@@ -124,10 +124,12 @@
   .btn{font-family:'Nunito',system-ui,sans-serif;font-weight:900;font-size:15px;border:none;cursor:pointer;border-radius:14px;
     padding:13px 18px;color:#06202c;background:linear-gradient(#ffd66b,#ffb02e);
     box-shadow:0 4px 0 #9c6a00, 0 12px 20px rgba(0,0,0,.35);
-    transition:transform .07s ease, box-shadow .07s ease, filter .12s;touch-action:manipulation}
+        transition:transform .16s cubic-bezier(.2,1.9,.4,1), box-shadow .12s ease, filter .12s;touch-action:manipulation}
   .btn:hover{filter:brightness(1.07)}
-  .btn:active{transform:translateY(3px) scale(.96);filter:brightness(1.08);
-    box-shadow:0 1px 0 #9c6a00, 0 4px 10px rgba(0,0,0,.35)}
+    .btn:active,.btn.pressed{transform:translateY(4px) scale(.94);filter:brightness(.95) saturate(1.15);
+    box-shadow:0 1px 0 #9c6a00, 0 3px 8px rgba(0,0,0,.3)}
+  .btn.ghost:active,.btn.ghost.pressed{box-shadow:0 1px 0 #061420, inset 0 0 0 1px rgba(140,220,255,.18)}
+  .btn.pressed{transition:transform .05s ease-out, box-shadow .05s ease-out, filter .05s}
   .btn.ghost{background:linear-gradient(#1b3b54,#122a3d);color:#bfe6ff;
     box-shadow:0 4px 0 #061420, inset 0 0 0 1px rgba(140,220,255,.18)}
   .btn.ghost:active{box-shadow:0 1px 0 #061420, inset 0 0 0 1px rgba(140,220,255,.18)}
