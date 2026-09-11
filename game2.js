@@ -247,3 +247,192 @@ function hudFrame(){
       el.goalLbl.textContent='Очисти поле';
       el.goalNum.textContent='❄ '+sumIceLayers()+' · ⛰ '+rockCount();
       el.bar.style.width=clamp(done/Math.max(1,goal.need)*100,0,100)+'%';}}}
+/* ========== ввод ========== */
+function pick(e){const r=canvas.getBoundingClientRect(),cs=r.width/COLS;
+  const c=Math.floor((e.clientX-r.left)/cs),row=Math.floor((e.clientY-r.top)/cs);
+  if(c<0||row<0||c>=COLS||row>=ROWS)return null;return{r:row,c};}
+const isAdj=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c)===1;
+canvas.addEventListener('pointerdown',e=>{
+  if(!started||busy||over)return;Snd.init();
+  const pos=pick(e);if(!pos)return;
+  hintPair=null;
+  if(hammerAim){hammerStrike(pos.r,pos.c);return;}
+  const g=grid[pos.r][pos.c];
+  if(!g){Snd.rockHit();shake(2);return;}
+  if(ICE[pos.r][pos.c]>0){g.iceT=.4;Snd.iceCrack();shake(2);return;}
+  if(selected&&isAdj(selected,pos)){const s=selected;selected=null;dragStart=null;
+    doSwap(s.r,s.c,pos.r,pos.c);return;}
+  if(selected&&selected.r===pos.r&&selected.c===pos.c){selected=null;return;}
+  selected=pos;Snd.tick();
+  dragStart={x:e.clientX,y:e.clientY,r:pos.r,c:pos.c};
+  try{canvas.setPointerCapture(e.pointerId)}catch(err){}});
+canvas.addEventListener('pointermove',e=>{
+  if(!dragStart||busy||over||!started||hammerAim)return;
+  const r=canvas.getBoundingClientRect(),cs=r.width/COLS;
+  const dx=e.clientX-dragStart.x,dy=e.clientY-dragStart.y;
+  if(Math.hypot(dx,dy)<cs*.38)return;
+  let dr=0,dc=0;
+  if(Math.abs(dx)>Math.abs(dy))dc=dx>0?1:-1;else dr=dy>0?1:-1;
+  const a={r:dragStart.r,c:dragStart.c},r2=a.r+dr,c2=a.c+dc;
+  dragStart=null;selected=null;
+  if(r2<0||c2<0||r2>=ROWS||c2>=COLS)return;
+  doSwap(a.r,a.c,r2,c2);});
+canvas.addEventListener('pointerup',()=>dragStart=null);
+canvas.addEventListener('pointercancel',()=>dragStart=null);
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+$('#plate').addEventListener('pointerdown',e=>{e.stopPropagation();Snd.tick();hidePlate();});
+/* ========== кнопки ========== */
+document.querySelectorAll('#startOv .modepick .btn').forEach(b=>
+  b.addEventListener('click',()=>{Snd.init();beginRun(true,b.dataset.mode);}));
+$('#btnContinue').addEventListener('click',()=>{
+  Snd.init();const d=loadSave();
+  if(d)beginRun(false,null,d);else beginRun(true,'classic');});
+$('#btnAgain').addEventListener('click',()=>beginRun(true,mode));
+$('#btnToMenu').addEventListener('click',toMenu);
+$('#btnMenu').addEventListener('click',()=>{if(started)toMenu();});
+$('#btnRestart').addEventListener('click',()=>{if(started){Snd.init();beginRun(true,mode);}});
+$('#btnHint').addEventListener('click',()=>{
+  if(!started||busy||over)return;Snd.init();
+  const pair=findHintPair();if(!pair){Snd.bad();return;}
+  if(mode==='classic'){
+    if(score<HINT_COST){Snd.bad();popup(boardPx/2,boardPx/2,'Нужно '+HINT_COST+' очков',false,'#ff8b8b');return;}
+    score-=HINT_COST;popup(boardPx/2,boardPx/2,'−'+HINT_COST,true,'#ff8b8b');}
+  else{
+    if(timeLeft<=HINT_COST_TIME+2){Snd.bad();popup(boardPx/2,boardPx/2,'Мало времени',false,'#ff8b8b');return;}
+    timeLeft-=HINT_COST_TIME;popup(boardPx/2,boardPx/2,'−'+HINT_COST_TIME+' с',true,'#ff8b8b');}
+  hintPair=pair;Snd.tick();updateHUD();});
+$('#btnHam').addEventListener('click',()=>{
+  if(!started||over||busy)return;Snd.init();
+  if(ham<=0){Snd.bad();return;}
+  hammerAim=!hammerAim;updateBoosterUI();
+  if(hammerAim){Snd.tick();popup(boardPx/2,boardPx*.5,'Тапни по цели',false,'#ffd66b');}});
+$('#btnFrz').addEventListener('click',()=>{
+  if(!started||over)return;Snd.init();
+  if(frz<=0){Snd.bad();return;}
+  useFreeze();});
+$('#btnLb').addEventListener('click',()=>openLb('classic'));
+$('#btnLb2').addEventListener('click',()=>openLb(mode));
+$('#btnLbClose').addEventListener('click',()=>$('#lbOv').classList.add('hidden'));
+$('#btnLbRefresh').addEventListener('click',()=>renderLb());
+$('#lbTabC').addEventListener('click',()=>{lbMode='classic';renderLb();});
+$('#lbTabT').addEventListener('click',()=>{lbMode='time';renderLb();});
+$('#btnHow').addEventListener('click',()=>$('#howOv').classList.remove('hidden'));
+$('#btnHowClose').addEventListener('click',()=>$('#howOv').classList.add('hidden'));
+$('#btnSettings').addEventListener('click',()=>$('#setOv').classList.remove('hidden'));
+$('#btnSetClose').addEventListener('click',()=>$('#setOv').classList.add('hidden'));
+$('#btnAbout').addEventListener('click',()=>$('#aboutOv').classList.remove('hidden'));
+$('#btnAboutClose').addEventListener('click',()=>$('#aboutOv').classList.add('hidden'));
+const ni=$('#nameInput');ni.value=store.get('sv-name','');
+ni.addEventListener('input',()=>store.set('sv-name',ni.value.slice(0,14)));
+const btnSound=$('#btnSound');
+function paintSound(){const t=Snd.on?'🔊':'';
+  const a=$('#btnSound'),b=$('#btnSoundSet');if(a)a.textContent=t;if(b)b.textContent=t;}
+function toggleSound(){Snd.on=!Snd.on;store.set('sv-snd',Snd.on?'1':'0');
+  paintSound();if(Snd.on){Snd.init();Snd.tick();}}
+btnSound.addEventListener('click',toggleSound);
+$('#btnSoundSet').addEventListener('click',toggleSound);
+document.addEventListener('pointerdown',e=>{
+  const b=e.target.closest?e.target.closest('.btn'):null;
+  if(!b)return;
+  b.classList.add('pressed');
+  const off=()=>b.classList.remove('pressed');
+  b.addEventListener('pointerup',off,{once:true});
+  b.addEventListener('pointercancel',off,{once:true});
+  b.addEventListener('pointerleave',off,{once:true});
+},{passive:true});
+/* ========== никнейм ========== */
+function maybeNick(){if(store.get('sv-nick-done'))return;
+  if(!$('#nickOv').classList.contains('hidden'))return;
+  $('#nickOv').classList.remove('hidden');}
+function saveNick(){const v=$('#nickInput').value.trim().slice(0,14);
+  if(v){store.set('sv-name',v);ni.value=v;}
+  store.set('sv-nick-done','1');
+  $('#nickOv').classList.add('hidden');Snd.init();Snd.tick();}
+$('#btnNickSave').addEventListener('click',saveNick);
+$('#btnNickSkip').addEventListener('click',()=>{store.set('sv-nick-done','1');
+  $('#nickOv').classList.add('hidden');});
+$('#nickInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveNick();});
+/* ========== автосохранение и доотправка топа ========== */
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame();});
+window.addEventListener('beforeunload',()=>saveGame());
+window.addEventListener('pagehide',()=>saveGame());
+window.addEventListener('online',()=>{lbFlush().then(()=>{
+  if(!$('#lbOv').classList.contains('hidden'))renderLb();});});
+/* ========== пыль ========== */
+(function dust(){const d=$('#dust'),cols=['#ffd66b','#5ff2d6','#bfe6ff','#ffffff'];
+  for(let i=0;i<26;i++){const s=document.createElement('span'),sz=rnd(2,4.5);
+    s.style.cssText=`left:${rnd(100)}%;width:${sz}px;height:${sz}px;
+      background:${cols[irnd(cols.length)]};opacity:${rnd(.15,.5)};
+      animation-duration:${rnd(9,22)}s;animation-delay:-${rnd(0,20)}s;
+      box-shadow:0 0 ${sz*2.5}px currentColor`;
+    d.appendChild(s);}})();
+/* ========== PWA ========== */
+if('serviceWorker'in navigator&&location.protocol.startsWith('http')){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;$('#installRow').hidden=false;});
+$('#btnInstall').addEventListener('click',async()=>{
+  if(!deferredPrompt)return;deferredPrompt.prompt();
+  try{await deferredPrompt.userChoice}catch(e){}
+  deferredPrompt=null;$('#installRow').hidden=true;});
+/* ========== главный цикл ========== */
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  update(dt);render(now/1000);
+  if(splashOn)drawSplash(now/1000);
+  if(!$('#startOv').classList.contains('hidden'))drawMenuGems(now/1000);
+  requestAnimationFrame(frame);}
+function update(dt){
+  for(let i=tweens.length-1;i>=0;i--){const tw=tweens[i];tw.t+=dt*1000;
+    tw.fn(tw.ease(Math.min(1,tw.t/tw.dur)));
+    if(tw.t>=tw.dur){tweens.splice(i,1);tw.done&&tw.done();}}
+  const GRAV=cell*52,MAXV=cell*34;
+  for(const row of grid)for(const g of row){if(!g)continue;
+    if(g.iceT>0)g.iceT-=dt;
+    if(g.falling){const ty=cellXY(g.r,g.c).y;
+      g.vy=Math.min(MAXV,g.vy+GRAV*dt);g.y+=g.vy*dt;
+      if(g.y>=ty){if(g.vy>cell*15&&!g.bounced){g.y=ty;g.vy*=-.22;g.bounced=true;}
+        else{g.y=ty;g.vy=0;g.falling=false;}}}
+    if(g.pop>=0){
+      if(g.popDelay>0)g.popDelay-=dt*1000;
+      else{if(!g.burst){g.burst=true;burst(g.x,g.y,COLORS[g.t].main);}
+        g.pop+=dt/(POP_MS/1000);
+        g.scale=g.pop<.3?1+(g.pop/.3)*.3:Math.max(0,1.3*(1-(g.pop-.3)/.7));}}}
+  if(fallRes&&allSettled()){const f=fallRes;fallRes=null;f.res();}
+  if(mode==='time'&&started&&!over){
+    timeLeft-=dt;
+    const sec=Math.ceil(timeLeft);
+    if(sec<=10&&sec!==lastTick&&sec>0){lastTick=sec;Snd.tickLow();buzz(15);}
+    if(timeLeft<=0){timeLeft=0;gameOver();}}
+  if(rushT>0&&started&&!over){rushT-=dt;
+    rushPartT-=dt;
+    if(rushPartT<=0){rushPartT=.16;
+      particles.push({x:rnd(boardPx),y:-cell*.2,vx:rnd(-cell*.25,cell*.25),vy:rnd(cell*.7,cell*1.5),
+        gr:0,t:0,ttl:rnd(1.4,2.4),col:Math.random()<.6?'#ffd66b':'#fff3c4',sz:rnd(.03,.07)*cell,spark:true});}
+    if(rushT<=0)endRush();}
+  glintT-=dt;
+  if(glintT<=0&&started&&!over){glintT=rnd(.45,1.3);
+    const g=grid[irnd(ROWS)]?.[irnd(COLS)];
+    if(g&&!g.falling&&g.pop<0&&ICE[g.r][g.c]===0)
+      glints.push({x:g.x,y:g.y-cell*.12,t:0,ttl:.55,s:cell*rnd(.4,.75),rot:rnd(Math.PI)});}
+  for(let i=glints.length-1;i>=0;i--){glints[i].t+=dt;if(glints[i].t>glints[i].ttl)glints.splice(i,1);}
+  for(let i=particles.length-1;i>=0;i--){const p=particles[i];
+    p.vy+=p.gr*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.t+=dt;
+    if(p.t>p.ttl)particles.splice(i,1);}
+  for(let i=popups.length-1;i>=0;i--){popups[i].t+=dt;if(popups[i].t>popups[i].ttl)popups.splice(i,1);}
+  for(let i=fxBeams.length-1;i>=0;i--){fxBeams[i].t+=dt;if(fxBeams[i].t>.32)fxBeams.splice(i,1);}
+  for(let i=fxRings.length-1;i>=0;i--){fxRings[i].t+=dt;if(fxRings[i].t>.42)fxRings.splice(i,1);}
+  if(shakeT>0)shakeT-=dt;else shakeMag=0;
+  dispScore+=(score-dispScore)*Math.min(1,dt*7);
+  hudFrame();}
+/* ========== старт ========== */
+new ResizeObserver(fitCanvas).observe(document.querySelector('.board-frame'));
+buildSprites();buildPrism();buildMega();buildRocks();
+ICE=zeroMat();ROCK=zeroMat();goal=makeGoal(1);
+fitCanvas();genBoard();goal=makeGoal(1);introFall();
+paintGolem();
+paintSound();applyModeUI();applyTheme();updateHUD();updateBoosterUI();updateBossUI();refreshStartUI();
+lbFlush();
+requestAnimationFrame(frame);
