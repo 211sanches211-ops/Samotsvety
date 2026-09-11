@@ -247,6 +247,7 @@
   .overlay{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;overflow:auto;
     background:rgba(3,10,16,.74);backdrop-filter:blur(6px);transition:opacity .35s}
   .overlay.hidden{opacity:0;pointer-events:none}
+  .overlay.on{opacity:1;pointer-events:auto}
   .card{text-align:center;max-width:min(94vw,470px);padding:26px 26px 30px;border-radius:26px;
     background:linear-gradient(170deg,#13314a,#0b1e2e 70%);
     box-shadow:0 34px 90px rgba(0,0,0,.65), inset 0 0 0 1px rgba(150,220,255,.15), 0 0 0 1px rgba(255,200,90,.14);
@@ -1726,9 +1727,26 @@ $('#btnMenu').addEventListener('click',()=>{if(started)toMenu();});
 $('#btnRestart').addEventListener('click',()=>{
   if(!started)return;
   Snd.init();
-  if(level>1&&!confirm('Сбросить прогресс и начать с 1 уровня?'))return;
+  if(level>1){showResetConfirm();return;}
   beginRun(true,mode);
 });
+function showResetConfirm(){
+  const ov=document.createElement('div');
+  ov.className='overlay';ov.id='resetOv';
+  ov.innerHTML='<div class="plate-card" style="max-width:min(88vw,380px)">'+
+    '<div class="plate-ico">⚠️</div>'+
+    '<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(15px,3.6vw,20px);color:#ffd66b;margin-bottom:12px;text-shadow:0 2px 0 #7a4c00,0 4px 10px rgba(0,0,0,.4);">Сбросить прогресс?</h3>'+
+    '<p style="font-size:14px;line-height:1.55;color:#cfe6f4;font-weight:700;margin-bottom:20px;text-shadow:0 2px 0 rgba(0,0,0,.45);">Ты на уровне '+level+'. Весь прогресс будет потерян.</p>'+
+    '<div style="display:flex;gap:12px;justify-content:center">'+
+    '<button id="btnResetCancel" class="btn ghost" style="flex:1;font-size:15px;padding:14px 20px;">Отмена</button>'+
+    '<button id="btnResetYes" class="btn" style="flex:1;font-size:15px;padding:14px 20px;background:linear-gradient(#ff6b6b,#c81e46);box-shadow:0 4px 0 #6e1414,0 12px 20px rgba(0,0,0,.35);">Сбросить</button>'+
+    '</div></div>';
+  document.body.appendChild(ov);
+  setTimeout(()=>{ov.classList.add('on');},10);
+  ov.querySelector('#btnResetCancel').addEventListener('click',()=>{ov.classList.remove('on');setTimeout(()=>ov.remove(),300);});
+  ov.querySelector('#btnResetYes').addEventListener('click',()=>{ov.classList.remove('on');setTimeout(()=>ov.remove(),300);beginRun(true,mode);});
+  ov.addEventListener('click',(e)=>{if(e.target===ov){ov.classList.remove('on');setTimeout(()=>ov.remove(),300);}});
+}
 $('#btnHint').addEventListener('click',()=>{
   if(!started||busy||over)return;Snd.init();
   const pair=findHintPair();if(!pair){Snd.bad();return;}
