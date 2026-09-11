@@ -1726,13 +1726,9 @@ $('#btnMenu').addEventListener('click',()=>{if(started)toMenu();});
 $('#btnRestart').addEventListener('click',()=>{
   if(!started)return;
   Snd.init();
-  if(level>1){
-    if(!confirm('Сбросить прогресс и начать с 1 уровня?'))return;
-  }
+  if(level>1&&!confirm('Сбросить прогресс и начать с 1 уровня?'))return;
   beginRun(true,mode);
 });
-
-  
 $('#btnHint').addEventListener('click',()=>{
   if(!started||busy||over)return;Snd.init();
   const pair=findHintPair();if(!pair){Snd.bad();return;}
