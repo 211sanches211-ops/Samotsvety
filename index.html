@@ -1542,6 +1542,7 @@ function drawGoalGem(){
   ggx.drawImage(SPR[goal.color],0,0,30,30);}
 function render(t){
   ctx.clearRect(0,0,boardPx,boardPx);
+  ctx.setLineDash([]);
   ctx.save();
   if(shakeT>0){const k=shakeT/.3;
     ctx.translate(rnd(-1,1)*shakeMag*k,rnd(-1,1)*shakeMag*k);}
