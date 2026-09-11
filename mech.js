@@ -1,6 +1,6 @@
 /* ========== ОГОНЬ + ЦЕПИ + ЧТО НОВОГО ========== */
 (function(){
-const CUR_VER='0.6beta';
+const CUR_VER='0.7beta';
 let FIRE={}, CHAINS=[], chainSeq=1, moveCount=0;
 const FIRE_START=13, CHAIN_START=8;
 function key2(r,c){return r+','+c;}
