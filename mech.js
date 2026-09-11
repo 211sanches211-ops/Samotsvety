@@ -1,5 +1,6 @@
 /* ========== ОГОНЬ + ЦЕПИ + ЧТО НОВОГО ========== */
 (function(){
+alert('mech.js загружен, версия: '+CUR_VER+', флаг: '+store.get('sv-seen-ver',''));
 const CUR_VER='0.7beta';
 let FIRE={}, CHAINS=[], chainSeq=1, moveCount=0;
 const FIRE_START=13, CHAIN_START=8;
