@@ -779,6 +779,8 @@ let grid=[], ICE=[], ROCK=[], goal=null,
     shakeT=0, shakeMag=0, fallRes=null, plateRes=null;
 const tweens=[], particles=[], popups=[], fxBeams=[], fxRings=[], glints=[];
 let glintT=0;
+let FIRE={},CHAINS=[],chainSeq=1,moveCount=0;
+const FIRE_START=13,CHAIN_START=8;
 const targetFor=l=>Math.min(18000,Math.round((6000+1500*(l-1))/100)*100);
 const getBest=m=>m==='time'?bestT:bestC;
 const zeroMat=()=>Array.from({length:ROWS},()=>Array(COLS).fill(0));
