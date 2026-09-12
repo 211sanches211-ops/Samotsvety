@@ -8,7 +8,7 @@ if(store.get('sv-seen-ver','')!==CUR_VER){
   const ov=document.createElement('div');
   ov.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,10,16,.85);backdrop-filter:blur(6px);';
   ov.innerHTML='<div style="background:linear-gradient(170deg,#13314a,#0b1e2e);border-radius:26px;padding:30px;max-width:min(94vw,430px);text-align:center;box-shadow:0 34px 90px rgba(0,0,0,.65);">'+
-    '<h2 style="font-family:Unbounded,sans-serif;font-weight:900;font-size:clamp(20px,5vw,28px);color:#ffd66b;margin:0 0 20px 0;text-shadow:0 1px 0 #e0a800,0 2px 0 #c79400,0 3px 0 #a67c00,0 4px 0 #8a6d00;"> Что нового</h2>'+
+    '<h2 style="font-family:Unbounded,sans-serif;font-weight:900;font-size:clamp(20px,5vw,28px);color:#ffd66b;margin:0 0 20px 0;">🆕 Что нового</h2>'+
     '<p style="font-size:16px;color:#bfe6ff;font-weight:700;line-height:1.6;margin:0 0 25px 0;">Добавлены новые уровни сложности с огнем и цепями!</p>'+
     '<button id="btnWn" style="font-family:Nunito,sans-serif;font-weight:900;font-size:19px;padding:16px 40px;border-radius:18px;border:none;color:#06202c;background:linear-gradient(#ffd66b,#ffb02e);box-shadow:0 4px 0 #9c6a00,0 12px 20px rgba(0,0,0,.35);cursor:pointer;">Понятно, играть!</button>'+
     '</div>';
@@ -110,10 +110,10 @@ function showChestReward(chestType,rewards){
   try{
     const ov=document.createElement('div');
     ov.className='overlay';
-    const icon=chestType==='gold'?'🥇':chestType==='silver'?'🥈':'';
+    const icon=chestType==='gold'?'🥇':chestType==='silver'?'':'🥉';
     let html='<div class="plate-card" style="max-width:min(88vw,400px);text-align:center">'+
       '<div class="plate-ico">'+icon+'</div>'+
-      '<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(15px,3.6vw,20px);color:#ffd66b;margin-bottom:16px;text-shadow:0 2px 0 #7a4c00,0 4px 10px rgba(0,0,0,.4);">Сундук открыт!</h3>'+
+      '<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(15px,3.6vw,20px);color:#ffd66b;margin-bottom:16px;">Сундук открыт!</h3>'+
       '<div id="chestRewards" style="margin-bottom:20px"></div>'+
       '<button id="btnChestClose" class="btn" style="width:100%;font-size:15px;padding:14px 20px;">Забрать</button></div>';
     ov.innerHTML=html;
@@ -133,7 +133,7 @@ function showInventory(){
     const ov=document.createElement('div');
     ov.className='overlay';
     let cHtml=CHESTS.filter(c=>!c.opened).map(c=>{
-      const icon=c.type==='gold'?'🥇':c.type==='silver'?'🥈':'🥉';
+      const icon=c.type==='gold'?'🥇':c.type==='silver'?'🥈':'';
       return '<div class="chest-item" data-id="'+c.id+'" style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:#bfe6ff;font-weight:700;">'+icon+' '+c.type+' сундук</div>';
     }).join('');
     if(!cHtml)cHtml='<div style="text-align:center;color:#7fa5bd;padding:20px;">Нет закрытых сундуков</div>';
@@ -142,7 +142,7 @@ function showInventory(){
       return '<div class="skin-item" data-skin="'+s+'" style="background:'+(isActive?'rgba(255,214,107,.15)':'rgba(8,22,34,.6)')+';border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:'+(isActive?'#ffd66b':'#bfe6ff')+';font-weight:700;border:'+(isActive?'2px solid #ffd66b':'1px solid rgba(140,220,255,.1)')+'">'+skin.name+(isActive?' ✓':'')+'</div>';
     }).join('');
     ov.innerHTML='<div class="plate-card" style="max-width:min(88vw,420px);max-height:80vh;overflow-y:auto">'+
-      '<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(18px,4vw,24px);color:#ffd66b;margin-bottom:16px;text-shadow:0 2px 0 #7a4c00,0 4px 10px rgba(0,0,0,.4);">💰 Монеты: '+COINS.toLocaleString('ru-RU')+'</h3>'+
+      '<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(18px,4vw,24px);color:#ffd66b;margin-bottom:16px;">💰 Монеты: '+COINS.toLocaleString('ru-RU')+'</h3>'+
       '<h4 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:16px;color:#bfe6ff;margin-bottom:12px;">📦 Сундуки</h4><div id="chestsList">'+cHtml+'</div>'+
       '<h4 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:16px;color:#bfe6ff;margin:20px 0 12px 0;">🎨 Скины</h4><div id="skinsList">'+sHtml+'</div>'+
       '<button id="btnInvClose" class="btn ghost" style="width:100%;font-size:15px;padding:14px 20px;margin-top:16px;">Закрыть</button></div>';
@@ -162,11 +162,16 @@ function showInventory(){
   }catch(e){console.error('Inv error',e);alert('Ошибка инвентаря: '+e.message);}
 }
 
-// 3. ТЕСТОВАЯ КНОПКА СУНДУКА
-setTimeout(()=>{
+// 3. НАДЁЖНАЯ ПРИВЯЗКА КНОПОК С ОТЛАДКОЙ
+function bindButtons(){
+  console.log('=== Привязка кнопок ===');
+  
   const testBtn=document.getElementById('btnTestChest');
+  console.log('Кнопка тест:', testBtn);
   if(testBtn){
-    testBtn.addEventListener('click',()=>{
+    testBtn.onclick=function(){
+      console.log('Тест сундука нажат!');
+      alert('Тест сундука работает!');
       const chestType=generateChest(99);
       if(chestType){
         const coins=chestType==='bronze'?Math.floor(Math.random()*1500)+2000:
@@ -177,22 +182,32 @@ setTimeout(()=>{
       }else{
         alert('Не повезло! Попробуй ещё раз.');
       }
-    });
+    };
   }
-},500);
-
-// 4. КНОПКИ ИНВЕНТАРЯ (в главном меню и в игре)
-setTimeout(()=>{
+  
   const invMenuBtn=document.getElementById('btnInvMenu');
+  console.log('Кнопка инвентаря (меню):', invMenuBtn);
   if(invMenuBtn){
-    invMenuBtn.addEventListener('click',showInventory);
+    invMenuBtn.onclick=function(){
+      console.log('Инвентарь (меню) нажат!');
+      showInventory();
+    };
   }
+  
   const invGameBtn=document.getElementById('btnInv');
+  console.log('Кнопка инвентаря (игра):', invGameBtn);
   if(invGameBtn){
-    invGameBtn.addEventListener('click',showInventory);
+    invGameBtn.onclick=function(){
+      console.log('Инвентарь (игра) нажат!');
+      showInventory();
+    };
     updateInvBadge();
   }
-},500);
+}
+
+// Пробуем привязать сразу и через интервал
+bindButtons();
+setInterval(bindButtons, 2000);
 
 applySkin(ACTIVE_SKIN);
 })();
