@@ -1,176 +1,63 @@
 (function(){
-  const CUR_VER='0.6beta';
-  const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},
-               set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+console.log('mech.js загружен');
 
-  // 1. ОКНО "ЧТО НОВОГО"
-  if(store.get('sv-seen-ver','')!==CUR_VER){
-    const ov=document.createElement('div');
-    ov.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,10,16,.85);backdrop-filter:blur(6px);';
-    ov.innerHTML='<div style="background:linear-gradient(170deg,#13314a,#0b1e2e);border-radius:26px;padding:30px;max-width:min(94vw,430px);text-align:center;box-shadow:0 34px 90px rgba(0,0,0,.65);"><h2 style="font-family:Unbounded,sans-serif;font-weight:900;font-size:clamp(20px,5vw,28px);color:#ffd66b;margin:0 0 20px 0;">🆕 Что нового</h2><p style="font-size:16px;color:#bfe6ff;font-weight:700;line-height:1.6;margin:0 0 25px 0;">Добавлены новые уровни сложности с огнем и цепями!</p><button id="btnWn" style="font-family:Nunito,sans-serif;font-weight:900;font-size:19px;padding:16px 40px;border-radius:18px;border:none;color:#06202c;background:linear-gradient(#ffd66b,#ffb02e);box-shadow:0 4px 0 #9c6a00,0 12px 20px rgba(0,0,0,.35);cursor:pointer;">Понятно, играть!</button></div>';
-    document.body.appendChild(ov);
-    setTimeout(function(){ov.style.opacity='1';},10);
-    document.getElementById('btnWn').addEventListener('click',function(){
-      store.set('sv-seen-ver',CUR_VER);
-      ov.style.opacity='0';ov.style.transition='opacity .4s';
-      setTimeout(function(){ov.remove();},400);
-    });
+const store={
+  get:function(k,d){try{var v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},
+  set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+};
+
+let CHESTS=JSON.parse(store.get('sv-chests','[]'))||[];
+let COINS=parseInt(store.get('sv-coins','0'))||0;
+
+function saveInv(){
+  store.set('sv-chests',JSON.stringify(CHESTS));
+  store.set('sv-coins',String(COINS));
+}
+
+function showChestReward(){
+  var chestType='silver';
+  var coins=3000;
+  COINS+=coins;
+  CHESTS.push({type:'silver',opened:false,id:Date.now()});
+  saveInv();
+  
+  var ov=document.createElement('div');
+  ov.className='overlay';
+  ov.innerHTML='<div class="plate-card" style="max-width:350px;text-align:center"><div class="plate-ico">🥈</div><h3 style="color:#ffd66b;margin-bottom:16px">Сундук открыт!</h3><div style="font-size:16px;color:#ffd66b;margin-bottom:20px">💰 +'+coins+' монет</div><button id="btnClose" class="btn" style="width:100%">Забрать</button></div>';
+  document.body.appendChild(ov);
+  setTimeout(function(){ov.classList.add('on');},10);
+  document.getElementById('btnClose').onclick=function(){ov.classList.remove('on');setTimeout(function(){ov.remove();},300);};
+}
+
+function showInventory(){
+  var ov=document.createElement('div');
+  ov.className='overlay';
+  ov.innerHTML='<div class="plate-card" style="max-width:350px"><h3 style="color:#ffd66b">💰 Монеты: '+COINS+'</h3><p style="color:#bfe6ff">Сундуков: '+CHESTS.length+'</p><button id="btnClose2" class="btn ghost" style="width:100%;margin-top:16px">Закрыть</button></div>';
+  document.body.appendChild(ov);
+  setTimeout(function(){ov.classList.add('on');},10);
+  document.getElementById('btnClose2').onclick=function(){ov.classList.remove('on');setTimeout(function(){ov.remove();},300);};
+}
+
+setTimeout(function(){
+  var testBtn=document.getElementById('btnTestChest');
+  var invBtn=document.getElementById('btnInvMenu');
+  
+  console.log('Кнопка теста:',testBtn);
+  console.log('Кнопка инвентаря:',invBtn);
+  
+  if(testBtn){
+    testBtn.onclick=function(){
+      console.log('Тест нажат!');
+      showChestReward();
+    };
   }
-
-  // 2. СУНДУКИ И СКИНЫ
-  let CHESTS=JSON.parse(store.get('sv-chests','[]'))||[];
-  let SKINS=JSON.parse(store.get('sv-skins','["classic"]'))||['classic'];
-  let COINS=parseInt(store.get('sv-coins','0'))||0;
-  let ACTIVE_SKIN=store.get('sv-active-skin','classic');
-
-  const SKIN_DATA={
-    classic:{name:'Классический',frameA:'#143249',frameB:'#0b1d2c',glowA:'rgba(56,224,200,.10)',glowB:'rgba(255,176,46,.10)'},
-    emerald:{name:'Изумрудный',frameA:'#1a4a3a',frameB:'#0d2c22',glowA:'rgba(46,230,168,.25)',glowB:'rgba(120,255,180,.15)'},
-    ruby:{name:'Рубиновый',frameA:'#4a1a2a',frameB:'#2c0d1a',glowA:'rgba(255,77,109,.25)',glowB:'rgba(255,150,170,.15)'},
-    amethyst:{name:'Аметистовый',frameA:'#3a1a4a',frameB:'#1f0d2c',glowA:'rgba(176,107,255,.25)',glowB:'rgba(200,150,255,.15)'}
-  };
-
-  function applySkin(skinId){
-    const skin=SKIN_DATA[skinId]||SKIN_DATA.classic;
-    document.body.style.setProperty('--frameA',skin.frameA);
-    document.body.style.setProperty('--frameB',skin.frameB);
-    document.body.style.setProperty('--glowA',skin.glowA);
-    document.body.style.setProperty('--glowB',skin.glowB);
-    ACTIVE_SKIN=skinId;
-    store.set('sv-active-skin',skinId);
+  
+  if(invBtn){
+    invBtn.onclick=function(){
+      console.log('Инвентарь нажат!');
+      showInventory();
+    };
   }
+},1000);
 
-  function saveInv(){
-    store.set('sv-chests',JSON.stringify(CHESTS));
-    store.set('sv-skins',JSON.stringify(SKINS));
-    store.set('sv-coins',String(COINS));
-  }
-
-  function updateInvBadge(){
-    const btn=document.getElementById('btnInv');
-    if(!btn)return;
-    const count=CHESTS.filter(function(c){return !c.opened;}).length;
-    let badge=btn.querySelector('#invBadge');
-    if(count>0){
-      if(!badge){
-        badge=document.createElement('span');
-        badge.id='invBadge';
-        badge.style.cssText='position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 5px;border-radius:99px;background:linear-gradient(#ffd66b,#ffb02e);color:#3a2400;font-family:Unbounded,sans-serif;font-size:11px;font-weight:700;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.45);';
-        btn.appendChild(badge);
-      }
-      badge.textContent=count;
-    }else if(badge){
-      badge.remove();
-    }
-  }
-
-  function generateChest(lvl){
-    const roll=Math.random();
-    let type=null;
-    if(roll<0.05)type='gold';
-    else if(roll<0.15)type='silver';
-    else if(roll<0.40)type='bronze';
-    if(!type)return null;
-    CHESTS.push({type:type,opened:false,id:Date.now()});
-    saveInv();
-    updateInvBadge();
-    return type;
-  }
-
-  function openChest(chestId){
-    const chest=CHESTS.find(function(c){return c.id===chestId;});
-    if(!chest||chest.opened)return null;
-    chest.opened=true;
-    let rewards=[];
-    if(chest.type==='bronze'){
-      const coins=Math.floor(Math.random()*1500)+2000;
-      COINS+=coins;rewards.push({type:'coins',amount:coins});
-    }else if(chest.type==='silver'){
-      const coins=Math.floor(Math.random()*2000)+3000;
-      COINS+=coins;rewards.push({type:'coins',amount:coins});
-    }else if(chest.type==='gold'){
-      const coins=Math.floor(Math.random()*3000)+5000;
-      COINS+=coins;rewards.push({type:'coins',amount:coins});
-      const newSkins=Object.keys(SKIN_DATA).filter(function(s){return !SKINS.includes(s);});
-      if(newSkins.length>0){
-        const skin=newSkins[Math.floor(Math.random()*newSkins.length)];
-        SKINS.push(skin);rewards.push({type:'skin',skin:skin});
-      }
-    }
-    saveInv();
-    updateInvBadge();
-    return rewards;
-  }
-
-  function showChestReward(chestType,rewards){
-    const ov=document.createElement('div');
-    ov.className='overlay';
-    const icon=chestType==='gold'?'🥇':chestType==='silver'?'':'🥉';
-    let html='<div class="plate-card" style="max-width:min(88vw,400px);text-align:center"><div class="plate-ico">'+icon+'</div><h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(15px,3.6vw,20px);color:#ffd66b;margin-bottom:16px;">Сундук открыт!</h3><div id="chestRewards" style="margin-bottom:20px"></div><button id="btnChestClose" class="btn" style="width:100%;font-size:15px;padding:14px 20px;">Забрать</button></div>';
-    ov.innerHTML=html;
-    document.body.appendChild(ov);
-    setTimeout(function(){ov.classList.add('on');},10);
-    const rDiv=ov.querySelector('#chestRewards');
-    rewards.forEach(function(r){
-      if(r.type==='coins')rDiv.innerHTML+='<div style="font-size:16px;color:#ffd66b;font-weight:700;margin-bottom:8px;">💰 +'+r.amount.toLocaleString('ru-RU')+' монет</div>';
-      else if(r.type==='skin')rDiv.innerHTML+='<div style="font-size:16px;color:#b06bff;font-weight:700;margin-bottom:8px;">✨ Новый скин: '+SKIN_DATA[r.skin].name+'!</div>';
-    });
-    ov.querySelector('#btnChestClose').addEventListener('click',function(){ov.classList.remove('on');setTimeout(function(){ov.remove();},300);});
-  }
-
-  function showInventory(){
-    const ov=document.createElement('div');
-    ov.className='overlay';
-    let cHtml=CHESTS.filter(function(c){return !c.opened;}).map(function(c){
-      const icon=c.type==='gold'?'🥇':c.type==='silver'?'🥈':'';
-      return '<div class="chest-item" data-id="'+c.id+'" style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:#bfe6ff;font-weight:700;">'+icon+' '+c.type+' сундук</div>';
-    }).join('');
-    if(!cHtml)cHtml='<div style="text-align:center;color:#7fa5bd;padding:20px;">Нет закрытых сундуков</div>';
-    let sHtml=SKINS.map(function(s){
-      const skin=SKIN_DATA[s],isActive=ACTIVE_SKIN===s;
-      return '<div class="skin-item" data-skin="'+s+'" style="background:'+(isActive?'rgba(255,214,107,.15)':'rgba(8,22,34,.6)')+';border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:'+(isActive?'#ffd66b':'#bfe6ff')+';font-weight:700;border:'+(isActive?'2px solid #ffd66b':'1px solid rgba(140,220,255,.1)')+'">'+skin.name+(isActive?' ✓':'')+'</div>';
-    }).join('');
-    ov.innerHTML='<div class="plate-card" style="max-width:min(88vw,420px);max-height:80vh;overflow-y:auto"><h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(18px,4vw,24px);color:#ffd66b;margin-bottom:16px;">💰 Монеты: '+COINS.toLocaleString('ru-RU')+'</h3><h4 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:16px;color:#bfe6ff;margin-bottom:12px;">📦 Сундуки</h4><div id="chestsList">'+cHtml+'</div><h4 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:16px;color:#bfe6ff;margin:20px 0 12px 0;">🎨 Скины</h4><div id="skinsList">'+sHtml+'</div><button id="btnInvClose" class="btn ghost" style="width:100%;font-size:15px;padding:14px 20px;margin-top:16px;">Закрыть</button></div>';
-    document.body.appendChild(ov);
-    setTimeout(function(){ov.classList.add('on');},10);
-    ov.querySelectorAll('.chest-item').forEach(function(el){
-      el.addEventListener('click',function(){
-        const rewards=openChest(parseInt(el.dataset.id));
-        if(rewards){ov.remove();showChestReward(CHESTS.find(function(c){return c.id===parseInt(el.dataset.id);}).type,rewards);}
-      });
-    });
-    ov.querySelectorAll('.skin-item').forEach(function(el){
-      el.addEventListener('click',function(){applySkin(el.dataset.skin);ov.remove();showInventory();});
-    });
-    ov.querySelector('#btnInvClose').addEventListener('click',function(){ov.classList.remove('on');setTimeout(function(){ov.remove();},300);});
-    ov.addEventListener('click',function(e){if(e.target===ov){ov.classList.remove('on');setTimeout(function(){ov.remove();},300);}});
-  }
-
-  // 3. ПРИВЯЗКА КНОПОК
-  setTimeout(function(){
-    const testBtn=document.getElementById('btnTestChest');
-    if(testBtn){
-      testBtn.onclick=function(){
-        const chestType=generateChest(99);
-        if(chestType){
-          const coins=chestType==='bronze'?Math.floor(Math.random()*1500)+2000:chestType==='silver'?Math.floor(Math.random()*2000)+3000:Math.floor(Math.random()*3000)+5000;
-          COINS+=coins;saveInv();updateInvBadge();
-          showChestReward(chestType,[{type:'coins',amount:coins}]);
-        }else{
-          alert('Не повезло! Попробуй ещё раз.');
-        }
-      };
-    }
-    const invMenuBtn=document.getElementById('btnInvMenu');
-    if(invMenuBtn){
-      invMenuBtn.onclick=function(){showInventory();};
-    }
-    const invGameBtn=document.getElementById('btnInv');
-    if(invGameBtn){
-      invGameBtn.onclick=function(){showInventory();};
-      updateInvBadge();
-    }
-  },1000);
-
-  applySkin(ACTIVE_SKIN);
 })();
