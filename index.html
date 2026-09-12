@@ -1801,20 +1801,29 @@ document.addEventListener('pointerdown',e=>{
   b.addEventListener('pointercancel',off,{once:true});
   b.addEventListener('pointerleave',off,{once:true});
 },{passive:true});
-function maybeNick(){if(store.get('sv-nick-done'))return;
-  if(store.get('sv-nick-done','')==='1'){
-  // Имя уже введено, продолжаем игру
-} else {
+if(store.get('sv-nick-done','')!=='1'){
   $('#nickOv').classList.remove('hidden');
   return;
 }
-function saveNick(){const v=$('#nickInput').value.trim().slice(0,14);
-  if(v){store.set('sv-name',v);ni.value=v;}
+function saveNick(){
+  const v=$('#nickInput').value.trim().slice(0,14);
+  if(v.length<2){alert('Имя должно быть не короче 2 символов');return;}
+  let finalName=v;
+  try{
+    const lb=JSON.parse(store.get('sv-lb','[]'))||[];
+    const usedNames=lb.map(e=>e.name);
+    if(usedNames.includes(finalName)){
+      const num=Math.floor(Math.random()*99)+1;
+      finalName=v+num;
+    }
+  }catch(e){}
+  store.set('sv-name',finalName);
+  ni.value=finalName;
   store.set('sv-nick-done','1');
-  $('#nickOv').classList.add('hidden');Snd.init();Snd.tick();}
+  $('#nickOv').classList.add('hidden');
+  Snd.init();Snd.tick();
+}
 $('#btnNickSave').addEventListener('click',saveNick);
-$('#btnNickSkip').addEventListener('click',()=>{store.set('sv-nick-done','1');
-  $('#nickOv').classList.add('hidden');});
 $('#nickInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveNick();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame();});
 window.addEventListener('beforeunload',()=>saveGame());
