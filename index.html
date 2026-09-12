@@ -326,7 +326,7 @@
       <button class="btn ghost icon" id="btnFrz" title="Заморозка: +3 хода">⏳<span class="cnt" id="frzN">0</span></button>
       <button class="btn ghost icon" id="btnSound" title="Звук">🔊</button>
       <button class="btn ghost icon" id="btnRestart" title="Заново">↻</button>
-      <button class="btn ghost icon" id="btnInv" title="Инвентарь">📦</button>
+      <button class="btn ghost icon" id="btnInvGame" title="Инвентарь">📦</button>
       <button class="btn ghost icon" id="btnMenu" title="В меню">🏠</button>
     </div>
     <div class="best">Рекорд:<b id="best">0</b></div>
@@ -359,8 +359,7 @@
     <button class="btn ghost wide" id="btnContinue" hidden>▶&nbsp; Продолжить — <span id="contInfo"></span></button>
     <button class="btn rating wide" id="btnLb" style="margin-top:10px">🏆 Рейтинг</button>
     <button class="btn ghost wide" id="btnInvMenu" style="margin-top:10px"> Инвентарь</button>
-    <button class="btn ghost wide" id="btnTestChest" style="margin-top:10px">🎁 Тест сундука</button>
-    <div class="menurow">
+        <div class="menurow">
       <button class="btn ghost wide" id="btnHow">❓ Как играть</button>
       <button class="btn ghost wide" id="btnSettings">⚙️ Настройки</button>
     </div>
@@ -1430,6 +1429,7 @@ function toMenu(){
   $('#overOv').classList.add('hidden');
   $('#startOv').classList.remove('hidden');
   refreshStartUI();}
+  window._onLevelComplete && window._onLevelComplete(level-1);
 function refreshStartUI(){
   const d=loadSave(),bc=$('#btnContinue');
   if(d){bc.hidden=false;
@@ -1891,16 +1891,18 @@ lbFlush();
 requestAnimationFrame(frame);
 </script>
   <script src="music.js"></script>
-<script>
+  <script>
 (function(){
-console.log('Inventory code loaded');
+console.log('Inventory system loaded');
 var invStore={get:function(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set:function(k,v){localStorage.setItem(k,v)}};
 var invChests=JSON.parse(invStore.get('sv-chests','[]'))||[];
 var invCoins=parseInt(invStore.get('sv-coins','0'))||0;
 function saveInv(){invStore.set('sv-chests',JSON.stringify(invChests));invStore.set('sv-coins',String(invCoins));}
-function showInv(){var ov=document.createElement('div');ov.className='overlay';ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><h3 style="color:#ffd66b">Coins: '+invCoins+'</h3><p style="color:#bfe6ff">Chests: '+invChests.length+'</p><button id="btnC" class="btn ghost" style="width:100%;margin-top:10px">Close</button></div>';document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);document.getElementById('btnC').onclick=function(){ov.remove();};}
-function showChest(){var ov=document.createElement('div');ov.className='overlay';var coins=3000;invCoins+=coins;invChests.push({type:'silver',opened:false,id:Date.now()});saveInv();ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">🥈</div><h3 style="color:#ffd66b">Chest!</h3><p style="color:#ffd66b">+'+coins+' coins</p><button id="btnX" class="btn" style="width:100%">OK</button></div>';document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);document.getElementById('btnX').onclick=function(){ov.remove();};}
-setTimeout(function(){var t=document.getElementById('btnTestChest');var i=document.getElementById('btnInvMenu');if(t)t.onclick=showChest;if(i)i.onclick=showInv;console.log('Buttons:',t,i);},1000);
+function updateBadge(){var btn=document.getElementById('btnInvGame');if(!btn)return;var count=invChests.filter(function(c){return !c.opened;}).length;var badge=btn.querySelector('.badge');if(count>0){if(!badge){badge=document.createElement('span');badge.className='badge';badge.style.cssText='position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 5px;border-radius:99px;background:#ffd66b;color:#06202c;font-size:11px;font-weight:700;display:grid;place-items:center;';btn.style.position='relative';btn.appendChild(badge);}badge.textContent=count;}else if(badge){badge.remove();}}
+function showInv(){var ov=document.createElement('div');ov.className='overlay';var cHtml=invChests.filter(function(c){return !c.opened;}).map(function(c){var icon=c.type==='gold'?'':c.type==='silver'?'🥈':'🥉';return '<div class="chest-item" data-id="'+c.id+'" style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:#bfe6ff;">'+icon+' '+c.type+' сундук</div>';}).join('');if(!cHtml)cHtml='<div style="text-align:center;color:#7fa5bd;padding:20px;">Нет закрытых сундуков</div>';ov.innerHTML='<div class="plate-card" style="max-width:350px;max-height:80vh;overflow-y:auto"><h3 style="color:#ffd66b;margin-bottom:16px">💰 Монеты: '+invCoins+'</h3><h4 style="color:#bfe6ff;margin-bottom:12px">📦 Сундуки</h4><div>'+cHtml+'</div><button id="btnC" class="btn ghost" style="width:100%;margin-top:16px">Закрыть</button></div>';document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);ov.querySelectorAll('.chest-item').forEach(function(el){el.onclick=function(){var id=parseInt(el.dataset.id);var chest=invChests.find(function(c){return c.id===id;});if(chest&&!chest.opened){chest.opened=true;var coins=chest.type==='bronze'?Math.floor(Math.random()*1500)+2000:chest.type==='silver'?Math.floor(Math.random()*2000)+3000:Math.floor(Math.random()*3000)+5000;invCoins+=coins;saveInv();updateBadge();ov.remove();showReward(chest.type,coins);}};});document.getElementById('btnC').onclick=function(){ov.remove();};}
+function showReward(type,coins){var ov=document.createElement('div');ov.className='overlay';var icon=type==='gold'?'🥇':type==='silver'?'🥈':'🥉';ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">Сундук открыт!</h3><p style="color:#ffd66b;font-size:18px">💰 +'+coins+' монет</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">Забрать</button></div>';document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);document.getElementById('btnX').onclick=function(){ov.remove();};}
+window._onLevelComplete=function(completedLevel){if(completedLevel<6)return;var roll=Math.random();var type=null;if(roll<0.05)type='gold';else if(roll<0.15)type='silver';else if(roll<0.40)type='bronze';if(!type)return;invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();setTimeout(function(){var coins=type==='bronze'?Math.floor(Math.random()*1500)+2000:type==='silver'?Math.floor(Math.random()*2000)+3000:Math.floor(Math.random()*3000)+5000;invCoins+=coins;saveInv();updateBadge();showReward(type,coins);},1500);};
+setTimeout(function(){var t=document.getElementById('btnInvMenu');var g=document.getElementById('btnInvGame');if(t)t.onclick=showInv;if(g){g.onclick=showInv;updateBadge();}console.log('Inventory buttons bound');},1000);
 })();
 </script>
  </body>
