@@ -1299,6 +1299,7 @@ async function levelUp(id){
   applyTheme();updateHUD();updateBoosterUI();saveGame();
   const info=levelInfo(level,added);
   await showPlate(info.ico,info.title,info.text);
+  window._onLevelComplete && window._onLevelComplete(level-1);
   if(id!==runId)return;}
 async function shuffleBoard(id){
   showBanner('НЕТ ХОДОВ','bad');Snd.shuffleS();
