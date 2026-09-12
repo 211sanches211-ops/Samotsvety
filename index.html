@@ -1801,9 +1801,11 @@ document.addEventListener('pointerdown',e=>{
   b.addEventListener('pointercancel',off,{once:true});
   b.addEventListener('pointerleave',off,{once:true});
 },{passive:true});
-if(store.get('sv-nick-done','')!=='1'){
-  $('#nickOv').classList.remove('hidden');
-  return;
+function maybeNick(){
+  if(store.get('sv-nick-done','')!=='1'){
+    $('#nickOv').classList.remove('hidden');
+    return;
+  }
 }
 function saveNick(){
   const v=$('#nickInput').value.trim().slice(0,14);
@@ -1818,6 +1820,14 @@ function saveNick(){
     }
   }catch(e){}
   store.set('sv-name',finalName);
+  ni.value=finalName;
+  store.set('sv-nick-done','1');
+  $('#nickOv').classList.add('hidden');
+  Snd.init();Snd.tick();
+}
+$('#btnNickSave').addEventListener('click',saveNick);
+$('#nickInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveNick();});
+maybeNick();
   ni.value=finalName;
   store.set('sv-nick-done','1');
   $('#nickOv').classList.add('hidden');
