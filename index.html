@@ -1802,8 +1802,12 @@ document.addEventListener('pointerdown',e=>{
   b.addEventListener('pointerleave',off,{once:true});
 },{passive:true});
 function maybeNick(){if(store.get('sv-nick-done'))return;
-  if(!$('#nickOv').classList.contains('hidden'))return;
-  $('#nickOv').classList.remove('hidden');}
+  if(store.get('sv-nick-done','')==='1'){
+  // Имя уже введено, продолжаем игру
+} else {
+  $('#nickOv').classList.remove('hidden');
+  return;
+}
 function saveNick(){const v=$('#nickInput').value.trim().slice(0,14);
   if(v){store.set('sv-name',v);ni.value=v;}
   store.set('sv-nick-done','1');
