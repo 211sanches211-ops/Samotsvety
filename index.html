@@ -1828,13 +1828,6 @@ function saveNick(){
 $('#btnNickSave').addEventListener('click',saveNick);
 $('#nickInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveNick();});
 maybeNick();
-  ni.value=finalName;
-  store.set('sv-nick-done','1');
-  $('#nickOv').classList.add('hidden');
-  Snd.init();Snd.tick();
-}
-$('#btnNickSave').addEventListener('click',saveNick);
-$('#nickInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveNick();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame();});
 window.addEventListener('beforeunload',()=>saveGame());
 window.addEventListener('pagehide',()=>saveGame());
