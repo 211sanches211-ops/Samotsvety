@@ -69,8 +69,8 @@ function updateInvBadge(){
 }
 
 function generateChest(lvl){
-  // === ВРЕМЕННАЯ ПРОВЕРКА: 100% шанс на 2 уровне ===
-  if(lvl === 2) {
+  // === ВРЕМЕННАЯ ПРОВЕРКА: 100% шанс на 1 уровне ===
+  if(lvl === 1) {
     CHESTS.push({type:'silver', opened:false, id:Date.now()});
     saveInv();
     updateInvBadge();
@@ -144,7 +144,7 @@ function showInventory(){
     const ov=document.createElement('div');
     ov.className='overlay';
     let cHtml=CHESTS.filter(c=>!c.opened).map(c=>{
-      const icon=c.type==='gold'?'🥇':c.type==='silver'?'🥈':'🥉';
+      const icon=c.type==='gold'?'🥇':c.type==='silver'?'':'🥉';
       return '<div class="chest-item" data-id="'+c.id+'" style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:#bfe6ff;font-weight:700;">'+icon+' '+c.type+' сундук</div>';
     }).join('');
     if(!cHtml)cHtml='<div style="text-align:center;color:#7fa5bd;padding:20px;">Нет закрытых сундуков</div>';
@@ -190,34 +190,35 @@ setTimeout(()=>{
 
 applySkin(ACTIVE_SKIN);
 
-// 4. НАДЕЖНЫЙ ПЕРЕХВАТ levelUp
-let checkInterval = setInterval(() => {
-  if (typeof window.levelUp === 'function' && !window._chestInjected) {
-    window._chestInjected = true;
-    const originalLevelUp = window.levelUp;
-    window.levelUp = async function(id) {
-      await originalLevelUp(id);
-      setTimeout(() => {
-        try {
-          const currentLevel = typeof level !== 'undefined' ? level : 1;
-          const chestType = generateChest(currentLevel);
-          if (chestType) {
-            const coins = chestType === 'bronze' ? Math.floor(Math.random() * 1500) + 2000 : 
-                          chestType === 'silver' ? Math.floor(Math.random() * 2000) + 3000 : 
-                          Math.floor(Math.random() * 3000) + 5000;
-            COINS += coins; 
-            saveInv(); 
-            updateInvBadge();
-            showChestReward(chestType, [{type: 'coins', amount: coins}]);
-          }
-        } catch(e) {
-          console.error('LevelUp chest error', e);
-        }
-      }, 1000);
-    };
-    clearInterval(checkInterval);
-    console.log('LevelUp успешно перехвачен для сундуков');
+// 4. ОТСЛЕЖИВАНИЕ ИЗМЕНЕНИЯ УРОВНЯ
+let lastLevel = 1;
+let chestGivenForLevel = 0;
+
+setInterval(() => {
+  try {
+    const currentLevel = typeof level !== 'undefined' ? level : 1;
+    if (currentLevel > lastLevel && currentLevel > chestGivenForLevel) {
+      // Уровень увеличился — выдаём сундук за предыдущий уровень
+      const completedLevel = currentLevel - 1;
+      chestGivenForLevel = currentLevel;
+      
+      const chestType = generateChest(completedLevel);
+      if (chestType) {
+        setTimeout(() => {
+          const coins = chestType === 'bronze' ? Math.floor(Math.random() * 1500) + 2000 : 
+                        chestType === 'silver' ? Math.floor(Math.random() * 2000) + 3000 : 
+                        Math.floor(Math.random() * 3000) + 5000;
+          COINS += coins; 
+          saveInv(); 
+          updateInvBadge();
+          showChestReward(chestType, [{type: 'coins', amount: coins}]);
+        }, 1500);
+      }
+    }
+    lastLevel = currentLevel;
+  } catch(e) {
+    console.error('Level check error', e);
   }
-}, 500);
+}, 1000);
 
 })();
