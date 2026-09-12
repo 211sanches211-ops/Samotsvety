@@ -69,14 +69,24 @@ function updateInvBadge(){
 }
 
 function generateChest(lvl){
-  if(lvl<6)return null;
-  const roll=Math.random();
-  let type=null;
-  if(roll<0.02)type='gold';
-  else if(roll<0.12)type='silver';
-  else if(roll<0.37)type='bronze';
-  if(!type)return null;
-  CHESTS.push({type:type,opened:false,id:Date.now()});
+  // === ВРЕМЕННАЯ ПРОВЕРКА: 100% шанс на 2 уровне ===
+  if(lvl === 2) {
+    CHESTS.push({type:'silver', opened:false, id:Date.now()});
+    saveInv();
+    updateInvBadge();
+    return 'silver';
+  }
+  
+  // Обычная логика (с 6 уровня)
+  if(lvl < 6) return null;
+  const roll = Math.random();
+  let type = null;
+  if(roll < 0.05) type = 'gold';
+  else if(roll < 0.15) type = 'silver';
+  else if(roll < 0.40) type = 'bronze';
+  
+  if(!type) return null;
+  CHESTS.push({type:type, opened:false, id:Date.now()});
   saveInv();
   updateInvBadge();
   return type;
@@ -108,81 +118,106 @@ function openChest(chestId){
 }
 
 function showChestReward(chestType,rewards){
-  const ov=document.createElement('div');
-  ov.className='overlay';
-  const icon=chestType==='gold'?'🥇':chestType==='silver'?'🥈':'🥉';
-  let html='<div class="plate-card" style="max-width:min(88vw,400px);text-align:center">'+
-    '<div class="plate-ico">'+icon+'</div>'+
-    '<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(15px,3.6vw,20px);color:#ffd66b;margin-bottom:16px;text-shadow:0 2px 0 #7a4c00,0 4px 10px rgba(0,0,0,.4);">Сундук открыт!</h3>'+
-    '<div id="chestRewards" style="margin-bottom:20px"></div>'+
-    '<button id="btnChestClose" class="btn" style="width:100%;font-size:15px;padding:14px 20px;">Забрать</button></div>';
-  ov.innerHTML=html;
-  document.body.appendChild(ov);
-  setTimeout(()=>{ov.classList.add('on');},10);
-  const rDiv=ov.querySelector('#chestRewards');
-  rewards.forEach(r=>{
-    if(r.type==='coins') rDiv.innerHTML+='<div style="font-size:16px;color:#ffd66b;font-weight:700;margin-bottom:8px;">💰 +'+r.amount.toLocaleString('ru-RU')+' монет</div>';
-    else if(r.type==='skin') rDiv.innerHTML+='<div style="font-size:16px;color:#b06bff;font-weight:700;margin-bottom:8px;">✨ Новый скин: '+SKIN_DATA[r.skin].name+'!</div>';
-  });
-  ov.querySelector('#btnChestClose').addEventListener('click',()=>{ov.classList.remove('on');setTimeout(()=>ov.remove(),300);});
+  try{
+    const ov=document.createElement('div');
+    ov.className='overlay';
+    const icon=chestType==='gold'?'🥇':chestType==='silver'?'🥈':'🥉';
+    let html='<div class="plate-card" style="max-width:min(88vw,400px);text-align:center">'+
+      '<div class="plate-ico">'+icon+'</div>'+
+      '<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(15px,3.6vw,20px);color:#ffd66b;margin-bottom:16px;text-shadow:0 2px 0 #7a4c00,0 4px 10px rgba(0,0,0,.4);">Сундук открыт!</h3>'+
+      '<div id="chestRewards" style="margin-bottom:20px"></div>'+
+      '<button id="btnChestClose" class="btn" style="width:100%;font-size:15px;padding:14px 20px;">Забрать</button></div>';
+    ov.innerHTML=html;
+    document.body.appendChild(ov);
+    setTimeout(()=>{ov.classList.add('on');},10);
+    const rDiv=ov.querySelector('#chestRewards');
+    rewards.forEach(r=>{
+      if(r.type==='coins') rDiv.innerHTML+='<div style="font-size:16px;color:#ffd66b;font-weight:700;margin-bottom:8px;">💰 +'+r.amount.toLocaleString('ru-RU')+' монет</div>';
+      else if(r.type==='skin') rDiv.innerHTML+='<div style="font-size:16px;color:#b06bff;font-weight:700;margin-bottom:8px;">✨ Новый скин: '+SKIN_DATA[r.skin].name+'!</div>';
+    });
+    ov.querySelector('#btnChestClose').addEventListener('click',()=>{ov.classList.remove('on');setTimeout(()=>ov.remove(),300);});
+  }catch(e){console.error('Chest error',e);alert('Ошибка сундука: '+e.message);}
 }
 
 function showInventory(){
-  const ov=document.createElement('div');
-  ov.className='overlay';
-  let cHtml=CHESTS.filter(c=>!c.opened).map(c=>{
-    const icon=c.type==='gold'?'🥇':c.type==='silver'?'🥈':'🥉';
-    return '<div class="chest-item" data-id="'+c.id+'" style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:#bfe6ff;font-weight:700;">'+icon+' '+c.type+' сундук</div>';
-  }).join('');
-  if(!cHtml)cHtml='<div style="text-align:center;color:#7fa5bd;padding:20px;">Нет закрытых сундуков</div>';
-  
-  let sHtml=SKINS.map(s=>{
-    const skin=SKIN_DATA[s], isActive=ACTIVE_SKIN===s;
-    return '<div class="skin-item" data-skin="'+s+'" style="background:'+(isActive?'rgba(255,214,107,.15)':'rgba(8,22,34,.6)')+';border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:'+(isActive?'#ffd66b':'#bfe6ff')+';font-weight:700;border:'+(isActive?'2px solid #ffd66b':'1px solid rgba(140,220,255,.1)')+'">'+skin.name+(isActive?' ✓':'')+'</div>';
-  }).join('');
+  try{
+    const ov=document.createElement('div');
+    ov.className='overlay';
+    let cHtml=CHESTS.filter(c=>!c.opened).map(c=>{
+      const icon=c.type==='gold'?'🥇':c.type==='silver'?'🥈':'🥉';
+      return '<div class="chest-item" data-id="'+c.id+'" style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:#bfe6ff;font-weight:700;">'+icon+' '+c.type+' сундук</div>';
+    }).join('');
+    if(!cHtml)cHtml='<div style="text-align:center;color:#7fa5bd;padding:20px;">Нет закрытых сундуков</div>';
+    
+    let sHtml=SKINS.map(s=>{
+      const skin=SKIN_DATA[s], isActive=ACTIVE_SKIN===s;
+      return '<div class="skin-item" data-skin="'+s+'" style="background:'+(isActive?'rgba(255,214,107,.15)':'rgba(8,22,34,.6)')+';border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:'+(isActive?'#ffd66b':'#bfe6ff')+';font-weight:700;border:'+(isActive?'2px solid #ffd66b':'1px solid rgba(140,220,255,.1)')+'">'+skin.name+(isActive?' ✓':'')+'</div>';
+    }).join('');
 
-  ov.innerHTML='<div class="plate-card" style="max-width:min(88vw,420px);max-height:80vh;overflow-y:auto">'+
-    '<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(18px,4vw,24px);color:#ffd66b;margin-bottom:16px;text-shadow:0 2px 0 #7a4c00,0 4px 10px rgba(0,0,0,.4);">💰 Монеты: '+COINS.toLocaleString('ru-RU')+'</h3>'+
-    '<h4 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:16px;color:#bfe6ff;margin-bottom:12px;">📦 Сундуки</h4><div id="chestsList">'+cHtml+'</div>'+
-    '<h4 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:16px;color:#bfe6ff;margin:20px 0 12px 0;">🎨 Скины</h4><div id="skinsList">'+sHtml+'</div>'+
-    '<button id="btnInvClose" class="btn ghost" style="width:100%;font-size:15px;padding:14px 20px;margin-top:16px;">Закрыть</button></div>';
-  document.body.appendChild(ov);
-  setTimeout(()=>{ov.classList.add('on');},10);
-  
-  ov.querySelectorAll('.chest-item').forEach(el=>{
-    el.addEventListener('click',()=>{
-      const rewards=openChest(parseInt(el.dataset.id));
-      if(rewards){ov.remove();showChestReward(CHESTS.find(c=>c.id===parseInt(el.dataset.id)).type,rewards);}
+    ov.innerHTML='<div class="plate-card" style="max-width:min(88vw,420px);max-height:80vh;overflow-y:auto">'+
+      '<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(18px,4vw,24px);color:#ffd66b;margin-bottom:16px;text-shadow:0 2px 0 #7a4c00,0 4px 10px rgba(0,0,0,.4);">💰 Монеты: '+COINS.toLocaleString('ru-RU')+'</h3>'+
+      '<h4 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:16px;color:#bfe6ff;margin-bottom:12px;">📦 Сундуки</h4><div id="chestsList">'+cHtml+'</div>'+
+      '<h4 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:16px;color:#bfe6ff;margin:20px 0 12px 0;">🎨 Скины</h4><div id="skinsList">'+sHtml+'</div>'+
+      '<button id="btnInvClose" class="btn ghost" style="width:100%;font-size:15px;padding:14px 20px;margin-top:16px;">Закрыть</button></div>';
+    document.body.appendChild(ov);
+    setTimeout(()=>{ov.classList.add('on');},10);
+    
+    ov.querySelectorAll('.chest-item').forEach(el=>{
+      el.addEventListener('click',()=>{
+        const rewards=openChest(parseInt(el.dataset.id));
+        if(rewards){ov.remove();showChestReward(CHESTS.find(c=>c.id===parseInt(el.dataset.id)).type,rewards);}
+      });
     });
-  });
-  ov.querySelectorAll('.skin-item').forEach(el=>{
-    el.addEventListener('click',()=>{applySkin(el.dataset.skin);ov.remove();showInventory();});
-  });
-  ov.querySelector('#btnInvClose').addEventListener('click',()=>{ov.classList.remove('on');setTimeout(()=>ov.remove(),300);});
-  ov.addEventListener('click',e=>{if(e.target===ov){ov.classList.remove('on');setTimeout(()=>ov.remove(),300);}});
+    ov.querySelectorAll('.skin-item').forEach(el=>{
+      el.addEventListener('click',()=>{applySkin(el.dataset.skin);ov.remove();showInventory();});
+    });
+    ov.querySelector('#btnInvClose').addEventListener('click',()=>{ov.classList.remove('on');setTimeout(()=>ov.remove(),300);});
+    ov.addEventListener('click',e=>{if(e.target===ov){ov.classList.remove('on');setTimeout(()=>ov.remove(),300);}});
+  }catch(e){console.error('Inv error',e);alert('Ошибка инвентаря: '+e.message);}
 }
 
-// Инициализация
+// 3. ИНИЦИАЛИЗАЦИЯ КНОПКИ
 setTimeout(()=>{
   const btn=document.getElementById('btnInv');
   if(btn){
-    btn.addEventListener('click',showInventory);
+    btn.addEventListener('click',()=>{
+      console.log('Кнопка инвентаря нажата');
+      showInventory();
+    });
     updateInvBadge();
   }
-},500);
+}, 1000);
+
 applySkin(ACTIVE_SKIN);
 
-// Перехват завершения уровня для выдачи сундука (безопасный)
-const _origLevelUp = window.levelUp;
-window.levelUp = async function(id){
-  await _origLevelUp(id);
-  const chestType = generateChest(level);
-  if(chestType){
-    setTimeout(()=>{
-      const coins = chestType==='bronze'? Math.floor(Math.random()*15)+20 : chestType==='silver'? Math.floor(Math.random()*20)+30 : Math.floor(Math.random()*3000)+5000;
-      COINS += coins; saveInv(); updateInvBadge();
-      showChestReward(chestType, [{type:'coins', amount:coins}]);
-    }, 1500);
+// 4. НАДЕЖНЫЙ ПЕРЕХВАТ levelUp
+let checkInterval = setInterval(() => {
+  if (typeof window.levelUp === 'function' && !window._chestInjected) {
+    window._chestInjected = true;
+    const originalLevelUp = window.levelUp;
+    window.levelUp = async function(id) {
+      await originalLevelUp(id);
+      setTimeout(() => {
+        try {
+          const currentLevel = typeof level !== 'undefined' ? level : 1;
+          const chestType = generateChest(currentLevel);
+          if (chestType) {
+            const coins = chestType === 'bronze' ? Math.floor(Math.random() * 1500) + 2000 : 
+                          chestType === 'silver' ? Math.floor(Math.random() * 2000) + 3000 : 
+                          Math.floor(Math.random() * 3000) + 5000;
+            COINS += coins; 
+            saveInv(); 
+            updateInvBadge();
+            showChestReward(chestType, [{type: 'coins', amount: coins}]);
+          }
+        } catch(e) {
+          console.error('LevelUp chest error', e);
+        }
+      }, 1000);
+    };
+    clearInterval(checkInterval);
+    console.log('LevelUp успешно перехвачен для сундуков');
   }
-};
+}, 500);
+
 })();
