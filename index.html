@@ -403,6 +403,7 @@
     <div class="setrow"><span>Имя игрока</span><input id="nameInput" maxlength="14" placeholder="Старатель" autocomplete="off"></div>
     <div class="setrow"><span>Звук</span><button class="btn ghost icon" id="btnSoundSet">🔊</button></div>
     <div class="setrow" id="installRow" hidden><span>Приложение</span><button class="btn ghost" id="btnInstall">⤓ Установить</button></div>
+    <div class="setrow"><span>🎨 Тема</span><button class="btn ghost" id="btnThemeSet">Классическая</button></div>
     <div class="ovbtns"><button class="btn big" id="btnSetClose">Готово</button></div>
   </div>
 </div>
@@ -530,7 +531,7 @@ async function renderLb(){
       if(i>=0){if(my>rows[i].s)rows[i].s=my;}
       else rows.push({n:playerName(),s:my,me:true});
       rows.sort((a,b)=>b.s-a.s);rows=rows.slice(0,10);}
-    note='Онлайн-таблица: результаты всех игроков по ссылке.';
+    note='Онлайн-таблица: результаты всех игроков.';
     if(ql>0)note='Онлайн-таблица: офлайн-результаты ещё доотправляются…';
     if(!navigator.onLine)note='Нет сети: видны ваши результаты с устройства — они доотправятся автоматически.';}
   else{rows=lbLocal(lbMode).map(r=>({n:r.n,s:r.s,me:true}));
