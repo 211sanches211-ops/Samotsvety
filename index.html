@@ -2567,17 +2567,15 @@ const devOvEl=document.getElementById('devOv');
 if(devOvEl)devOvEl.addEventListener('click',(e)=>{if(e.target===devOvEl)devOvEl.classList.add('hidden');});
 
 function ensureRun(callback){
-  /* Если игра запущена и не закончена — просто выполняем */
-  if(started && !over){
-    callback();
-    return;
-  }
-  /* Иначе — просим выбрать уровень */
+  if(started && !over){callback();return;}
   const ov=document.getElementById('devOv');
   if(ov)ov.classList.remove('hidden');
   showToast('Сначала выбери уровень');
   if(Snd&&Snd.on){Snd.init();Snd.bad();}
 }
+
+/* Очередь dev-действий: сработают при старте уровня */
+let devPending={boosters:false, score:0, nova:false};
 
 function devJumpToLv(n){
   n=clamp(parseInt(n)||1,1,99);
@@ -2597,17 +2595,35 @@ function devJumpToLv(n){
     if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
     seedChams();
     applyTheme();updateHUD();updateBoosterUI();updateBossUI();
+
+    setTimeout(()=>{
+      busy=false; fallRes=null; started=true; over=false;
+      if(devPending.boosters){
+        devCheat=true;
+        ham=5;frz=5;swapB=5;updateBoosterUI();
+        showToast('+5 бустеров (dev)');
+        devPending.boosters=false;
+      }
+      if(devPending.score){
+        devCheat=true;
+        score+=devPending.score;
+        updateHUD();
+        showToast('+'+fmt(devPending.score)+' очков (dev)');
+        devPending.score=0;
+      }
+      if(devPending.nova){
+        devCheat=true;
+        setTimeout(()=>superNovaBlast(3,3,runId),200);
+        devPending.nova=false;
+      }
+      refreshDevInfo();
+    },700);
+
     refreshDevInfo();
     showToast('📊 Уровень '+n);
-    /* Принудительно снимаем busy — на случай, если fallRes завис */
-    setTimeout(()=>{
-      busy=false;
-      fallRes=null;
-      started=true;
-      over=false;
-    },600);
   },120);
 }
+
 const devJump=document.getElementById('devJump');
 if(devJump)devJump.addEventListener('click',()=>devJumpToLv(document.getElementById('devLevel').value));
 const dv10=document.getElementById('devGo10');if(dv10)dv10.addEventListener('click',()=>devJumpToLv(10));
@@ -2618,36 +2634,84 @@ const dv30=document.getElementById('devGo30');if(dv30)dv30.addEventListener('cli
 const dv50=document.getElementById('devGo50');if(dv50)dv50.addEventListener('click',()=>devJumpToLv(50));
 
 const dvB=document.getElementById('devBoosters');
-if(dvB)dvB.addEventListener('click',()=>ensureRun(()=>{
-  devCheat=true;
-  ham=5;frz=5;swapB=5;updateBoosterUI();showToast('+5 бустеров (dev)');
-}));
+if(dvB)dvB.addEventListener('click',()=>{
+  if(started && !over && !busy){
+    devCheat=true;
+    ham=5;frz=5;swapB=5;updateBoosterUI();
+    showToast('+5 бустеров (dev)');
+  }else{
+    devPending.boosters=true;
+    showToast('✓ Бустеры в очереди');
+  }
+  refreshDevInfo();
+});
+
 const dvS=document.getElementById('devScore');
-if(dvS)dvS.addEventListener('click',()=>ensureRun(()=>{
-  devCheat=true;
-  score+=100000;showToast('+100 000 (dev)');updateHUD();
-}));
+if(dvS)dvS.addEventListener('click',()=>{
+  if(started && !over && !busy){
+    devCheat=true;
+    score+=100000;updateHUD();
+    showToast('+100 000 (dev)');
+  }else{
+    devPending.score+=100000;
+    showToast('✓ +100 000 в очереди');
+  }
+  refreshDevInfo();
+});
+
 const dvN=document.getElementById('devNova');
-if(dvN)dvN.addEventListener('click',()=>ensureRun(()=>{
-  devCheat=true;
-  superNovaBlast(3,3,runId);
-}));
+if(dvN)dvN.addEventListener('click',()=>{
+  if(started && !over && !busy){
+    devCheat=true;
+    superNovaBlast(3,3,runId);
+  }else{
+    devPending.nova=true;
+    showToast('✓ Супернова в очереди');
+  }
+  refreshDevInfo();
+});
+
 const dvW=document.getElementById('devWin');
 if(dvW)dvW.addEventListener('click',()=>ensureRun(async()=>{
   devCheat=true;
   await levelUp(runId);
 }));
+
 const dvL=document.getElementById('devLose');
 if(dvL)dvL.addEventListener('click',()=>ensureRun(()=>{
   devCheat=true;
   gameOver();
 }));
+
 const dvR=document.getElementById('devReset');
 if(dvR)dvR.addEventListener('click',()=>{
   if(!confirm('Сбросить весь прогресс и localStorage?'))return;
   ['sv-save-v13','sv-best-classic','sv-best-time','sv-best-zen','sv-lb','sv-lbq','sv-nick-done','sv-seen-cols','sv-chests','sv-coins','sv-active-skin'].forEach(k=>store.del(k));
   location.reload();
 });
+
+/* Обновляем блок refreshDevInfo — с очередью */
+function refreshDevInfo(){
+  const elD=document.getElementById('devInfo');
+  if(!elD)return;
+  const nc=typeof colCount==='function'?colCount():0;
+  const ni=typeof sumIceLayers==='function'?sumIceLayers():0;
+  const nr=typeof rockCount==='function'?rockCount():0;
+  const np=typeof poisonCount==='function'?poisonCount():0;
+  const st=(started?'▶':'⏸')+(over?'✗':'')+(busy?'…':'');
+  let q='';
+  if(devPending&&devPending.boosters)q+=' 🎁';
+  if(devPending&&devPending.score)q+=' 💰';
+  if(devPending&&devPending.nova)q+=' 💥';
+  elD.textContent=st+' ур.'+level+' · '+mode+' · '+fmt(score)+' оч.'+(devCheat?' (dev)':'')+q;
+}
+
+setInterval(refreshDevInfo,800);
+
+const devClose=document.getElementById('devClose');
+if(devClose)devClose.addEventListener('click',()=>document.getElementById('devOv').classList.add('hidden'));
+const devOvEl=document.getElementById('devOv');
+if(devOvEl)devOvEl.addEventListener('click',(e)=>{if(e.target===devOvEl)devOvEl.classList.add('hidden');});
 
 (function dust(){const d=$('#dust'),cols=['#ffd66b','#5ff2d6','#bfe6ff','#ffffff'];
 for(let i=0;i<26;i++){const s=document.createElement('span'),sz=rnd(2,4.5);
