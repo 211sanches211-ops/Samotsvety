@@ -45,8 +45,8 @@ background-size:38px 38px;}
 body::after{content:'';position:fixed;inset:0;pointer-events:none;
 background:radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(2,8,14,.55) 100%);}
 #dust{position:fixed;inset:0;pointer-events:none;z-index:10;overflow:hidden;opacity:.55}
-#dust span{position:absolute;bottom:-12px;border-radius:50%;animation:rise linear infinite;filter:blur(.4px)}
-@keyframes rise{to{transform:translateY(-108vh)}}
+#dust span{position:absolute;bottom:-20px;border-radius:50%;animation:rise linear infinite;filter:blur(.4px)}
+@keyframes rise{to{transform:translateY(-120vh)}}
 .app{position:relative;z-index:2;min-height:100dvh;max-width:1180px;margin:0 auto;
 padding:clamp(10px,2.4vw,26px);display:flex;flex-direction:column;gap:14px}
 .side{display:contents}
@@ -963,7 +963,6 @@ selected=null, hintPair=null, dragStart=null,
 shakeT=0, shakeMag=0, fallRes=null, plateRes=null;
 let devCheat=false;
 const tweens=[], particles=[], popups=[], fxBeams=[], fxRings=[], glints=[];
-const bgDust=[];
 let glintT=0;
 const targetFor=l=>Math.min(18000,Math.round((6000+1500*(l-1))/100)*100);
 const getBest=m=>m==='time'?bestT:(m==='zen'?bestZ:bestC);
@@ -2096,16 +2095,7 @@ if(ROCK[r][c]>0||COL[r][c]>0){ctx.fillStyle='rgba(0,0,0,.28)';
 rr(ctx,c*cell+1,r*cell+1,cell-2,cell-2,cell*.14);ctx.fill();}}
 ctx.strokeStyle='rgba(150,220,255,.09)';ctx.lineWidth=1.5;
 rr(ctx,1,1,boardPx-2,boardPx-2,13);ctx.stroke();
-for(const p of bgDust){
-  const a=p.life/p.maxLife;
-  const alpha=a<.25?a/.25:(1-a)/.75;
-  ctx.fillStyle=p.col;
-  ctx.globalAlpha=alpha*.3;
-  ctx.beginPath();
-  ctx.arc(p.x,p.y,p.r,0,7);
-  ctx.fill();
-}
-ctx.globalAlpha=1;
+
 ctx.save();
 rr(ctx,0,0,boardPx,boardPx,14);
 ctx.clip();
@@ -2750,29 +2740,6 @@ for(let i=fxBeams.length-1;i>=0;i--){fxBeams[i].t+=dt;if(fxBeams[i].t>.32)fxBeam
 for(let i=fxRings.length-1;i>=0;i--){fxRings[i].t+=dt;if(fxRings[i].t>.42)fxRings.splice(i,1);}
 if(shakeT>0)shakeT-=dt;else shakeMag=0;
 dispScore+=(score-dispScore)*Math.min(1,dt*7);
-if(started&&!over&&cell>0){
-  while(bgDust.length<20){
-    bgDust.push({
-      x:rnd(boardPx),
-      y:boardPx+rnd(0,cell*2),
-      vx:rnd(-cell*.3,cell*.3),
-      vy:rnd(-cell*1.1,-cell*.5),
-      r:rnd(1.5,3),
-      life:0,
-      maxLife:rnd(1.5,3.5),
-      col:['#ffd66b','#5ff2d6','#bfe6ff','#ffffff'][irnd(4)]
-    });
-  }
-  for(let i=bgDust.length-1;i>=0;i--){
-    const p=bgDust[i];
-    p.x+=p.vx*dt;
-    p.y+=p.vy*dt;
-    p.life+=dt;
-    if(p.life>=p.maxLife||p.y<-20||p.x<-20||p.x>boardPx+20){
-      bgDust.splice(i,1);
-    }
-  }
-}
 hudFrame();}
 new ResizeObserver(fitCanvas).observe(document.querySelector('.board-frame'));
 buildSprites();buildPrism();buildMega();buildRocks();buildCols();
