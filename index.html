@@ -2097,12 +2097,13 @@ function drawColumn(r,c){
   ctx.restore();
 }
 function render(t){
-ctx.clearRect(0,0,boardPx,boardPx);
 ctx.setLineDash([]);
-ctx.save();
-if(shakeT>0){const k=shakeT/.3;
-ctx.translate(rnd(-1,1)*shakeMag*k,rnd(-1,1)*shakeMag*k);}
-ctx.fillStyle='rgba(7,20,32,.6)';rr(ctx,0,0,boardPx,boardPx,14);ctx.fill();
+ctx.clearRect(0,0,boardPx,boardPx);
+/* 1. Фон поля — БЕЗ сдвига */
+ctx.fillStyle='rgba(7,20,32,.6)';
+rr(ctx,0,0,boardPx,boardPx,14);
+ctx.fill();
+/* 2. Сетка поля — БЕЗ сдвига */
 for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
 ctx.fillStyle=(r+c)%2?'rgba(120,190,255,.05)':'rgba(120,190,255,.022)';
 rr(ctx,c*cell+1,r*cell+1,cell-2,cell-2,cell*.14);ctx.fill();
@@ -2110,7 +2111,12 @@ if(ROCK[r][c]>0||COL[r][c]>0){ctx.fillStyle='rgba(0,0,0,.28)';
 rr(ctx,c*cell+1,r*cell+1,cell-2,cell-2,cell*.14);ctx.fill();}}
 ctx.strokeStyle='rgba(150,220,255,.09)';ctx.lineWidth=1.5;
 rr(ctx,1,1,boardPx-2,boardPx-2,13);ctx.stroke();
-ctx.save();rr(ctx,0,0,boardPx,boardPx,14);ctx.clip();
+/* 3. Начинаем сдвиг и обрезку для содержимого */
+ctx.save();
+rr(ctx,0,0,boardPx,boardPx,14);
+ctx.clip();
+if(shakeT>0){const k=shakeT/.3;
+ctx.translate(rnd(-1,1)*shakeMag*k,rnd(-1,1)*shakeMag*k);}
 if(hintPair)for(const h of hintPair){const p=cellXY(h.r,h.c);
 const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,cell*.8);
 g.addColorStop(0,'rgba(255,214,107,.28)');g.addColorStop(1,'rgba(255,214,107,0)');
