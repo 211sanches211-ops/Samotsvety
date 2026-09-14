@@ -1368,7 +1368,17 @@ const add=(rr,cc)=>{if(rr<0||cc<0||rr>=ROWS||cc>=COLS)return;
 const kk=key(rr,cc);
 if(COL[rr][cc]>0)return;
 if(ROCK[rr][cc]>0||ICE[rr][cc]>0){direct.add(kk);return;}
-if(!set.has(kk)){set.add(kk);q.push(kk)}};
+if(!set.has(kk)){
+  set.add(kk);
+  q.push(kk);
+  const gg=grid[rr]&&grid[rr][cc];
+  if(gg&&gg.special){
+    const p=cellXY(rr,cc);
+    if(gg.special==='line-h'){fxBeams.push({r:rr,c:cc,dir:'h',t:0});}
+    else if(gg.special==='line-v'){fxBeams.push({r:rr,c:cc,dir:'v',t:0});}
+    else{fxRings.push({x:p.x,y:p.y,t:0});}
+  }
+}};
 if(g.special==='line-h'){fxBeams.push({r,c,dir:'h',t:0});
   for(let i=0;i<COLS;i++){if(COL[r][i]>0)break;add(r,i);}}
 else if(g.special==='line-v'){fxBeams.push({r,c,dir:'v',t:0});
