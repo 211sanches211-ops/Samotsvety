@@ -2599,6 +2599,13 @@ function devJumpToLv(n){
     applyTheme();updateHUD();updateBoosterUI();updateBossUI();
     refreshDevInfo();
     showToast('📊 Уровень '+n);
+    /* Принудительно снимаем busy — на случай, если fallRes завис */
+    setTimeout(()=>{
+      busy=false;
+      fallRes=null;
+      started=true;
+      over=false;
+    },600);
   },120);
 }
 const devJump=document.getElementById('devJump');
