@@ -2561,10 +2561,6 @@ function refreshDevInfo(){
 }
 setInterval(refreshDevInfo,800);
 
-const devClose=document.getElementById('devClose');
-if(devClose)devClose.addEventListener('click',()=>document.getElementById('devOv').classList.add('hidden'));
-const devOvEl=document.getElementById('devOv');
-if(devOvEl)devOvEl.addEventListener('click',(e)=>{if(e.target===devOvEl)devOvEl.classList.add('hidden');});
 
 function ensureRun(callback){
   if(started && !over){callback();return;}
