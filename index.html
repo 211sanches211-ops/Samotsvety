@@ -2357,8 +2357,8 @@ el.bar.style.width=clamp(goal.done/goal.need*100,0,100)+'%';}
 else if(goal.type==='special'){
 el.goalLbl.textContent='Создай спецкамни';
 el.goalNum.textContent='⚡ '+goal.done+' / '+goal.need;
-el.bar.style.width=clamp(goal.done/goal.need*100,0,100)+'%';
-  else{
+el.bar.style.width=clamp(goal.done/goal.need*100,0,100)+'%';}
+else{
 const left=sumIceLayers()+rockCount();
 const done=Math.max(0,goal.need-left);
 el.goalLbl.textContent='Очисти поле';
