@@ -969,7 +969,63 @@ let devCheat=false;
 const tweens=[], particles=[], popups=[], fxBeams=[], fxRings=[], glints=[];
 let glintT=0;
 let lastMove=null;
-const targetFor=l=>Math.min(18000,Math.round((6000+1500*(l-1))/100)*100);
+const targetFor=l=>Math.min(12000,Math.round((4500+900*(l-1))/100)*100);
+  // ===== КОНФИГ УРОВНЕЙ 1-20 =====
+const LEVEL_CONFIG = {
+    1:  { ice:0, rock:0, fire:0, poison:0, col:0, goal:'score'  },
+    2:  { ice:0, rock:0, fire:0, poison:0, col:0, goal:'score'  },
+    3:  { ice:0, rock:0, fire:0, poison:0, col:0, goal:'score'  },
+    4:  { ice:0, rock:0, fire:0, poison:0, col:0, goal:'score'  },
+    5:  { ice:2, rock:0, fire:0, poison:0, col:0, goal:'clean'  },
+    6:  { ice:0, rock:0, fire:0, poison:0, col:0, goal:'score'  },
+    7:  { ice:0, rock:0, fire:0, poison:0, col:0, goal:'score'  },
+    8:  { ice:0, rock:0, fire:1, poison:0, col:0, goal:'score'  },
+    9:  { ice:0, rock:0, fire:0, poison:1, col:0, goal:'score'  },
+    10: { ice:0, rock:0, fire:0, poison:0, col:0, goal:'boss'   },
+    11: { ice:3, rock:2, fire:0, poison:0, col:0, goal:'clean'  },
+    12: { ice:3, rock:0, fire:1, poison:0, col:0, goal:'clean'  },
+    13: { ice:0, rock:0, fire:0, poison:0, col:0, goal:'score'  },
+    14: { ice:0, rock:0, fire:0, poison:0, col:2, goal:'score'  },
+    15: { ice:0, rock:0, fire:1, poison:1, col:0, goal:'score'  },
+    16: { ice:4, rock:0, fire:0, poison:0, col:0, goal:'color'  },
+    17: { ice:0, rock:3, fire:1, poison:0, col:0, goal:'clean'  },
+    18: { ice:3, rock:0, fire:0, poison:0, col:2, goal:'color'  },
+    19: { ice:0, rock:0, fire:1, poison:1, col:1, goal:'score'  },
+    20: { ice:0, rock:0, fire:0, poison:0, col:0, goal:'boss'   },
+};
+
+// ===== ФОРМУЛА 21+ =====
+function levelHazards(l){
+    const out={ice:0,rock:0,fire:0,poison:0,col:0};
+    if(l<=20) return LEVEL_CONFIG[l] || out;
+    if(l%10===1) return out;           // передышка
+    if(l%10===0) return out;           // босс — без препятствий
+    const allowed=[];
+    if(l%3===0) allowed.push('ice');
+    if(l%4===0) allowed.push('rock');
+    if(l%5===0) allowed.push('fire');
+    if(l%6===0) allowed.push('poison');
+    if(l%7===0) allowed.push('col');
+    if(!allowed.length) return out;
+    const order = allowed.sort(()=>Math.random()-.5).slice(0,2);
+    for(const t of order){
+        if(t==='ice')    out.ice    = Math.min(4+Math.floor(l/6), 8);
+        if(t==='rock')   out.rock   = Math.min(2+Math.floor(l/8), 6);
+        if(t==='fire')   out.fire   = Math.min(1+Math.floor(l/12), 3);
+        if(t==='poison') out.poison = Math.min(1+Math.floor(l/15), 2);
+        if(t==='col')    out.col    = 2;
+    }
+    return out;
+}
+function levelGoalKind(l){
+    if(l<=20) return LEVEL_CONFIG[l].goal;
+    if(l%10===0) return 'boss';
+    if(l%10===1) return 'score';       // передышка
+    if(l%7===0)  return 'clean';
+    if(l%3===0)  return 'color';
+    if(l%5===0)  return 'special';
+    return 'score';
+}
 const getBest=m=>m==='time'?bestT:(m==='zen'?bestZ:bestC);
 const zeroMat=()=>Array.from({length:ROWS},()=>Array(COLS).fill(0));
 const rushOn=()=>rushT>0;
@@ -1001,24 +1057,22 @@ function colHeight(l){
   return 4;
 }
 function makeCols(l){
-  const empty=zeroMat();
-  if(isZen())return empty;
-  if(mode==='time')return empty;
-  if(l<14)return empty;
-  const k=levelKind(l);
-  if(k==='boss'||k==='color')return empty;
-  if(Math.random()>=0.30)return empty;
-  const h=colHeight(l);
-  const startRow=Math.max(1,Math.floor((ROWS-h)/2));
-  const colL=2, colR=5;
-  for(let i=0;i<h;i++){
-    const r=startRow+i;
-    if(r>=0&&r<ROWS){
-      empty[r][colL]=1;
-      empty[r][colR]=1;
+    const empty=zeroMat();
+    if(isZen()) return empty;
+    if(mode==='time') return empty;
+    const h = levelHazards(l).col;
+    if(h<=0) return empty;
+    const hh=Math.min(h,3);
+    const startRow=Math.max(1,Math.floor((ROWS-hh)/2));
+    const colL=2, colR=5;
+    for(let i=0;i<hh;i++){
+        const r=startRow+i;
+        if(r>=0&&r<ROWS){
+            empty[r][colL]=1;
+            empty[r][colR]=1;
+        }
     }
-  }
-  return empty;
+    return empty;
 }
 function addScore(base){const g=Math.round(base*(rushOn()?2:1));score+=g;
 if(started&&!over&&!isZen()){
@@ -1045,17 +1099,23 @@ function rockCount(){let n=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(RO
 function poisonCount(){return Object.keys(POISON).length;}
 function obstaclesClear(){return sumIceLayers()===0&&rockCount()===0;}
 function makeGoal(l){
-if(mode!=='classic')return null;
-const k=levelKind(l);
-if(k==='boss')return{type:'boss',need:60+l*4,done:0,counted:false};
-if(k==='special')return{type:'special',need:2+Math.floor(l/7),done:0};
-if(k==='clean')return{type:'clean',need:sumIceLayers()+rockCount(),done:0};
-if(k==='color')return{type:'color',color:irnd(TYPES),need:10+2*l,done:0};
-return{type:'score',need:targetFor(l),done:0};}
+    if(mode!=='classic') return null;
+    const k = levelGoalKind(l);
+    if(k==='boss')    return {type:'boss', need:60+l*4, done:0, counted:false};
+    if(k==='special') return {type:'special', need:2+Math.floor(l/7), done:0};
+    if(k==='clean')   return {type:'clean', needIce:0, needRock:0, doneIce:0, doneRock:0, ready:false};
+    if(k==='color'){
+        let c1=irnd(TYPES), c2;
+        do { c2=irnd(TYPES); } while (c2===c1);
+        const needEach = 8 + Math.floor(l/2);
+        return {type:'color2', colors:[c1,c2], needEach, done1:0, done2:0};
+    }
+    return {type:'score', need:targetFor(l), done:0};
+}
 function mainMet(){if(!goal)return false;
 if(goal.type==='boss')return goal.done>=goal.need;
 if(goal.type==='score')return score-levelStartScore>=goal.need;
-if(goal.type==='color')return goal.done>=goal.need;
+if(goal.type==='color2')return goal.done1>=goal.needEach && goal.done2>=goal.needEach;
 if(goal.type==='special')return goal.done>=goal.need;
 return true;}
 function goalMet(){if(!goal)return false;
@@ -1161,23 +1221,27 @@ else if(added.ice&&!seenIce){seenIce=true;ico='❄';text='Новое: ЛЁД. С
 else if(added.rock&&!seenRock){seenRock=true;ico='⛰';text='Новое: ВАЛУНЫ. Бей совпадениями рядом. '+text;}
 return{ico,title:'Уровень '+l+' · '+th,text};}
 function spawnFire(l){
-if(l<8||l%10===0)return;
-const num=Math.min(1+Math.floor((l-8)/3),3);
-for(let i=0;i<num;i++){
-let r,c,guard=0;
-do{r=irnd(ROWS);c=irnd(COLS);guard++;}
-while((FIRE[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||grid[r][c]?.special||POISON[r+','+c])&&guard<100);
-if(guard<100)FIRE[r+','+c]=3;
-}}
+    if(mode!=='classic') return;
+    const num=levelHazards(l).fire;
+    if(!num) return;
+    for(let i=0;i<num;i++){
+        let r,c,guard=0;
+        do{r=irnd(ROWS);c=irnd(COLS);guard++;}
+        while((FIRE[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||grid[r][c]?.special||POISON[r+','+c])&&guard<100);
+        if(guard<100)FIRE[r+','+c]=3;
+    }
+}
 function spawnPoison(l){
-if(l<9||l%10===0)return;
-const num=Math.min(1+Math.floor((l-9)/4),3);
-for(let i=0;i<num;i++){
-let r,c,guard=0;
-do{r=irnd(ROWS);c=irnd(COLS);guard++;}
-while((FIRE[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||grid[r][c]?.special||POISON[r+','+c])&&guard<100);
-if(guard<100){POISON[r+','+c]=1;POISON_AGE[r+','+c]=0;}
-}}
+    if(mode!=='classic') return;
+    const num=levelHazards(l).poison;
+    if(!num) return;
+    for(let i=0;i<num;i++){
+        let r,c,guard=0;
+        do{r=irnd(ROWS);c=irnd(COLS);guard++;}
+        while((FIRE[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||grid[r][c]?.special||POISON[r+','+c])&&guard<100);
+        if(guard<100){POISON[r+','+c]=1;POISON_AGE[r+','+c]=0;}
+    }
+}
 function poisonSpread(){
 if(!started||over)return;
 if(isZen())return;
@@ -1303,10 +1367,10 @@ const p=cellXY(r,c);poisonBurst(p.x,p.y,true);
 Snd.iceBreak();const gn=addScore(80);popup(p.x,p.y,'☠ +'+fmt(gn),false,'#a8ffb0');});
 if(hi.size||hr.size||hp.size)updateHUD();}
 function placeObstacles(l){
-if(mode!=='classic'||l%10===0)return{ice:0,rock:0};
-const k=levelKind(l);
-const iceN=k==='clean'?Math.min(4+(l-3)*2,14):0;
-let rockN=l>=4?Math.min(2+(l-4),8):0;rockN-=rockN%2;
+if(mode!=='classic')return{ice:0,rock:0};
+const hz=levelHazards(l);
+const iceN=hz.ice;
+let rockN=hz.rock;rockN-=rockN%2;
 const doubleP=l>=6?.5:(l>=4?.25:0), rockHp2=l>=8?.6:(l>=7?.3:0);
 for(let attempt=0;attempt<25;attempt++){
 const half=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS/2;c++)half.push([r,c]);
@@ -1417,10 +1481,14 @@ for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++)
 if(grid[rr][cc]&&grid[rr][cc].t===bt)add(rr,cc);}}
 return triggered;}
 function countColorGoal(set){
-if(!goal||goal.type!=='color')return;
-let n=0;set.forEach(k=>{const[r,c]=k.split(',').map(Number);
-const g=grid[r][c];if(g&&g.t===goal.color)n++;});
-if(n)goal.done+=n;}
+    if(!goal||goal.type!=='color2')return;
+    set.forEach(k=>{
+        const[r,c]=k.split(',').map(Number);
+        const g=grid[r][c];if(!g)return;
+        if(g.t===goal.colors[0]) goal.done1=Math.min(goal.needEach,goal.done1+1);
+        if(g.t===goal.colors[1]) goal.done2=Math.min(goal.needEach,goal.done2+1);
+    });
+}
 async function destroySet(set,id,spawns=[]){
 for(const fk of Object.keys(FIRE)){
 if(set.has(fk)){
@@ -1731,14 +1799,18 @@ saveBest();
 confetti();Snd.levelup();buzz([20,40,20]);
 showToast('🎉 Уровень '+level+' пройден!');
 await wait(1250);if(id!==runId)return;
-level++;moves=levelKind(level)==='clean'?25:MOVES_PER_LEVEL;
+level++;
+const kg=levelGoalKind(level);
+moves=kg==='clean'?25:MOVES_PER_LEVEL;
 levelStartScore=score;movesInLevel=0;gateWarned=false;moveCount=0;
 FIRE={};POISON={};POISON_AGE={};
 COL=makeCols(level);
+genBoard();
 const added=placeObstacles(level);
 spawnFire(level);
 spawnPoison(level);
 goal=makeGoal(level);
+if(goal&&goal.type==='clean'){goal.needIce=sumIceLayers();goal.needRock=rockCount();goal.ready=true;}
 if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
 seedChams();
 applyTheme();updateHUD();updateBoosterUI();saveGame();
@@ -1851,32 +1923,55 @@ else{if(score>bestZ){bestZ=score;store.set('sv-best-zen',bestZ);return true}}
 return false;}
 function saveGame(){
 if(!started||over||isZen()||devCheat)return;
-try{store.set(SAVE_KEY,JSON.stringify({mode,score,level,moves,levelStartScore,timeLeft,goal,ham,frz,swapB,undoB,nextBonusAt,
+try{store.set(SAVE_KEY,JSON.stringify({v:2,mode,score,level,moves,levelStartScore,timeLeft,goal,ham,frz,swapB,undoB,nextBonusAt,
 nha:nextHamAt,nfa:nextFrzAt,nsa:nextSwapAt,nuo:nextUndoAt,mvl:movesInLevel,
 board:grid.map(row=>row.map(g=>g?[g.t,g.special||null,g.cham?1:0]:null)),ice:ICE,rock:ROCK,col:COL,fire:FIRE,poison:POISON,poisonAge:POISON_AGE}))}catch(e){}}
 function loadSave(){try{const d=JSON.parse(store.get(SAVE_KEY,'null'));
 return d&&Array.isArray(d.board)&&d.board.length===ROWS&&d.mode!=='zen'?d:null}catch(e){return null}}
 function clearSave(){store.del(SAVE_KEY)}
 function restoreGame(d){
-mode=d.mode==='time'?'time':'classic';
-score=d.score||0;dispScore=score;lastShown=-1;
-level=Math.max(1,d.level||1);moves=d.moves??MOVES_PER_LEVEL;
-levelStartScore=d.levelStartScore||0;
-timeLeft=clamp(d.timeLeft??TIME_START,1,TIME_CAP);
-ham=clamp(d.ham??0,0,BOOST_MAX);frz=clamp(d.frz??0,0,BOOST_MAX);swapB=clamp(d.swapB??0,0,BOOST_MAX);undoB=clamp(d.undoB??0,0,BOOST_MAX);
-nextBonusAt=d.nextBonusAt||3000;nextHamAt=d.nha||HAM_FIRST;nextFrzAt=d.nfa||FRZ_FIRST;nextSwapAt=d.nsa||SWAP_FIRST;nextUndoAt=d.nuo||UNDO_FIRST;
-movesInLevel=d.mvl||0;gateWarned=false;moveCount=0;
-grid=d.board.map((row,r)=>row.map((cd,c)=>{
-  if(!cd)return null;
-  const g=newGem(cd[0]||0,r,c);g.special=cd[1]||null;g.cham=!!cd[2];return g;}));
-ICE=(d.ice&&d.ice.length===ROWS)?d.ice.map(r=>r.slice()):zeroMat();
-ROCK=(d.rock&&d.rock.length===ROWS)?d.rock.map(r=>r.slice()):zeroMat();
-COL=(d.col&&d.col.length===ROWS)?d.col.map(r=>r.slice()):zeroMat();
-FIRE=d.fire||{};POISON=d.poison||{};POISON_AGE=d.poisonAge||{};
-goal=d.goal||{type:'score',need:targetFor(level),done:0};
-seenIce=ICE.some(r=>r.some(v=>v>0));seenRock=ROCK.some(r=>r.some(v=>v>0));
-if(goal.type==='boss'){golemAngry=false;paintGolem();}
-if(grid.some(row=>row.length!==COLS))genBoard();}
+    mode=d.mode==='time'?'time':'classic';
+    score=d.score||0;dispScore=score;lastShown=-1;
+    level=Math.max(1,d.level||1);moves=d.moves??MOVES_PER_LEVEL;
+    levelStartScore=d.levelStartScore||0;
+    timeLeft=clamp(d.timeLeft??TIME_START,1,TIME_CAP);
+    ham=clamp(d.ham??0,0,BOOST_MAX);frz=clamp(d.frz??0,0,BOOST_MAX);
+    swapB=clamp(d.swapB??0,0,BOOST_MAX);undoB=clamp(d.undoB??0,0,BOOST_MAX);
+    nextBonusAt=d.nextBonusAt||3000;nextHamAt=d.nha||HAM_FIRST;nextFrzAt=d.nfa||FRZ_FIRST;
+    nextSwapAt=d.nsa||SWAP_FIRST;nextUndoAt=d.nuo||UNDO_FIRST;
+    movesInLevel=d.mvl||0;gateWarned=false;moveCount=0;
+
+    if(d.v === 2 && Array.isArray(d.board) && d.board.length === ROWS && d.board[0].length === COLS){
+        // ===== НОВЫЙ сейв (v:2) — восстанавливаем как было =====
+        grid=d.board.map((row,r)=>row.map((cd,c)=>{
+            if(!cd)return null;
+            const g=newGem(cd[0]||0,r,c);g.special=cd[1]||null;g.cham=!!cd[2];return g;}));
+        ICE=(d.ice&&d.ice.length===ROWS)?d.ice.map(r=>r.slice()):zeroMat();
+        ROCK=(d.rock&&d.rock.length===ROWS)?d.rock.map(r=>r.slice()):zeroMat();
+        COL=(d.col&&d.col.length===ROWS)?d.col.map(r=>r.slice()):makeCols(level);
+        FIRE=d.fire||{};POISON=d.poison||{};POISON_AGE=d.poisonAge||{};
+        goal=d.goal||{type:'score',need:targetFor(level),done:0};
+    } else {
+        // ===== СТАРЫЙ сейв (без v:2) — пересчитываем препятствия =====
+        FIRE={};POISON={};POISON_AGE={};
+        COL=makeCols(level);
+        genBoard();
+        placeObstacles(level);
+        spawnFire(level);
+        spawnPoison(level);
+        goal=makeGoal(level);
+        if(goal&&goal.type==='clean'){
+            goal.needIce=sumIceLayers();
+            goal.needRock=rockCount();
+            goal.ready=true;
+        }
+    }
+
+    seenIce=ICE.some(r=>r.some(v=>v>0));
+    seenRock=ROCK.some(r=>r.some(v=>v>0));
+    if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
+    if(grid.some(row=>row.length!==COLS))genBoard();
+}
 function fitNum(e){const len=e.textContent.length;
 e.classList.toggle('n6',len>=6&&len<8);
 e.classList.toggle('n8',len>=8);}
@@ -1927,11 +2022,13 @@ levelStartScore=0;timeLeft=TIME_START;ham=0;frz=0;swapB=0;nextBonusAt=3000;
 nextHamAt=HAM_FIRST;nextFrzAt=FRZ_FIRST;nextSwapAt=SWAP_FIRST;
 COL=makeCols(1);
 genBoard();
+placeObstacles(1);
+spawnFire(1);spawnPoison(1);
 if(m==='zen'){
 goal=null;
 }else{
 goal=makeGoal(1);
-spawnFire(1);spawnPoison(1);
+if(goal&&goal.type==='clean'){goal.needIce=sumIceLayers();goal.needRock=rockCount();goal.ready=true;}
 }
 }
 else restoreGame(data);
@@ -2119,10 +2216,11 @@ mgx.drawImage(SPR[i],x-s/2,y-s/2,s,s);}
 const gi=Math.floor(t*1.5)%n,gx=step*(gi+.5),gy=H/2+Math.sin(t*2+gi*.9)*3-s*.4;
 drawStar(mgx,gx,gy,6+3*Math.sin(t*7),t,.9);}
 function drawGoalGem(){
-if(!goal||goal.type!=='color'){ggCv.hidden=true;return;}
-ggCv.hidden=false;
-ggx.clearRect(0,0,30,30);
-ggx.drawImage(SPR[goal.color],0,0,30,30);}
+    if(!goal||goal.type!=='color2'){ggCv.hidden=true;return;}
+    ggCv.hidden=false;
+    ggx.clearRect(0,0,30,30);
+    ggx.drawImage(SPR[goal.colors[0]],0,0,15,30);
+    ggx.drawImage(SPR[goal.colors[1]],15,0,15,30);}
 function drawColumn(r,c){
   const p=cellXY(r,c);
   const above=COL[r-1]?.[c]>0;
@@ -2350,20 +2448,31 @@ if(goal.type==='score'){const ls=score-levelStartScore;
 el.goalLbl.textContent='Цель уровня';
 el.goalNum.textContent=fmt(Math.min(ls,goal.need))+' / '+fmt(goal.need);
 el.bar.style.width=clamp(ls/goal.need*100,0,100)+'%';}
-else if(goal.type==='color'){
-el.goalLbl.textContent='Собери кристаллы';
-el.goalNum.textContent=goal.done+' / '+goal.need;
-el.bar.style.width=clamp(goal.done/goal.need*100,0,100)+'%';}
+else if(goal.type==='color2'){
+    el.goalLbl.textContent='Собери кристаллы';
+    const totalDone=goal.done1+goal.done2, totalNeed=goal.needEach*2;
+    el.goalNum.innerHTML =
+        `<span style="color:${COLORS[goal.colors[0]].main}">●</span> ${goal.done1}/${goal.needEach}` +
+        `&nbsp;&nbsp;` +
+        `<span style="color:${COLORS[goal.colors[1]].main}">●</span> ${goal.done2}/${goal.needEach}`;
+    el.bar.style.width=clamp(totalDone/totalNeed*100,0,100)+'%';}
 else if(goal.type==='special'){
 el.goalLbl.textContent='Создай спецкамни';
 el.goalNum.textContent='⚡ '+goal.done+' / '+goal.need;
 el.bar.style.width=clamp(goal.done/goal.need*100,0,100)+'%';}
 else{
-const left=sumIceLayers()+rockCount();
-const done=Math.max(0,goal.need-left);
-el.goalLbl.textContent='Очисти поле';
-el.goalNum.textContent='❄ '+sumIceLayers()+' · ⛰ '+rockCount();
-el.bar.style.width=clamp(done/Math.max(1,goal.need)*100,0,100)+'%';}}}
+    if(!goal.ready){
+        goal.needIce=sumIceLayers();
+        goal.needRock=rockCount();
+        goal.ready=true;
+    }
+    const leftIce=sumIceLayers(), leftRock=rockCount();
+    const doneIce=Math.max(0,goal.needIce-leftIce);
+    const doneRock=Math.max(0,goal.needRock-leftRock);
+    const totalNeed=Math.max(1,goal.needIce+goal.needRock);
+    el.goalLbl.textContent='Очисти поле';
+    el.goalNum.textContent='❄ '+doneIce+'/'+goal.needIce+' · ⛰ '+doneRock+'/'+goal.needRock;
+    el.bar.style.width=clamp((doneIce+doneRock)/totalNeed*100,0,100)+'%';}}}
 function pick(e){const r=canvas.getBoundingClientRect(),cs=r.width/COLS;
 const c=Math.floor((e.clientX-r.left)/cs),row=Math.floor((e.clientY-r.top)/cs);
 if(c<0||row<0||c>=COLS||row>=ROWS)return null;return{r:row,c};}
