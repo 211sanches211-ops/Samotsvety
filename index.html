@@ -2556,7 +2556,8 @@ function refreshDevInfo(){
   const ni=typeof sumIceLayers==='function'?sumIceLayers():0;
   const nr=typeof rockCount==='function'?rockCount():0;
   const np=typeof poisonCount==='function'?poisonCount():0;
-  elD.textContent='ур.'+level+' · '+mode+' · '+fmt(score)+' очков'+(devCheat?' (dev)':'')+' · 🧱'+nc+' ❄'+ni+' ⛰'+nr+' ☠'+np;
+  const st=(started?'▶':'⏸')+(over?'✗':'')+(busy?'…':'');
+  elD.textContent=st+' ур.'+level+' · '+mode+' · '+fmt(score)+' оч.'+(devCheat?' (dev)':'')+' · 🧱'+nc+' ❄'+ni+' ⛰'+nr+' ☠'+np;
 }
 setInterval(refreshDevInfo,800);
 
@@ -2566,7 +2567,12 @@ const devOvEl=document.getElementById('devOv');
 if(devOvEl)devOvEl.addEventListener('click',(e)=>{if(e.target===devOvEl)devOvEl.classList.add('hidden');});
 
 function ensureRun(callback){
-  if(started && !over){callback();return;}
+  /* Если игра запущена и не закончена — просто выполняем */
+  if(started && !over){
+    callback();
+    return;
+  }
+  /* Иначе — просим выбрать уровень */
   const ov=document.getElementById('devOv');
   if(ov)ov.classList.remove('hidden');
   showToast('Сначала выбери уровень');
