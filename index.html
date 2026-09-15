@@ -345,7 +345,6 @@ min-height:100dvh;padding:30px}
 <span class="chip cham" id="chipCham" hidden>🦎 <b id="chipChamN">0</b></span>
 <span class="chip poison" id="chipPoison" hidden>☠ Яд<b id="chipPoisonN">0</b></span>
 <span class="chip fire" id="chipFire" hidden>🔥 Огонь<b id="chipFireN">0</b></span>
-<span class="chip col" id="chipCols" hidden>🧱 Колонны<b id="chipColsN">0</b></span>
 <span class="chip zen" id="chipZen" hidden>🧘 Дзен</span>
 <span class="chip rush" id="chipRush" hidden>⚡ ×2<b id="chipRushN"></b></span>
 </div>
@@ -2448,7 +2447,7 @@ chipRock:$('#chipRock'),chipRockN:$('#chipRockN'),
 chipCham:$('#chipCham'),chipChamN:$('#chipChamN'),
 chipPoison:$('#chipPoison'),chipPoisonN:$('#chipPoisonN'),
 chipFire:$('#chipFire'),chipFireN:$('#chipFireN'),
-chipCols:$('#chipCols'),chipColsN:$('#chipColsN'),
+
 chipZen:$('#chipZen'),
 chipRush:$('#chipRush'),chipRushN:$('#chipRushN')};
 function bump(e){e.classList.remove('bump');void e.offsetWidth;e.classList.add('bump');}
@@ -2463,29 +2462,28 @@ $('#btnHint').style.opacity=zen?'0.55':'';
 function updateHUD(){
 if(mode==='time'){
 el.moves.textContent=fmt(bestT);fitNum(el.moves);el.movesStat.classList.remove('low');
-el.chipIce.hidden=true;el.chipRock.hidden=true;el.chipCham.hidden=true;el.chipPoison.hidden=true;el.chipFire.hidden=true;el.chipCols.hidden=true;el.chipZen.hidden=true;}
+el.chipIce.hidden=true;el.chipRock.hidden=true;el.chipCham.hidden=true;el.chipPoison.hidden=true;el.chipFire.hidden=true;el.chipZen.hidden=true;}
 else if(mode==='zen'){
 el.mid.textContent='🧘';el.moves.textContent=fmt(bestZ);fitNum(el.moves);
 el.movesStat.classList.remove('low');el.midStat.classList.remove('low');
-el.chipIce.hidden=true;el.chipRock.hidden=true;el.chipCham.hidden=true;el.chipPoison.hidden=true;el.chipFire.hidden=true;el.chipCols.hidden=true;
+el.chipIce.hidden=true;el.chipRock.hidden=true;el.chipCham.hidden=true;el.chipPoison.hidden=true;el.chipFire.hidden=true;
 el.chipZen.hidden=false;}
 else{
 el.mid.textContent=level;el.midStat.classList.remove('low');
 el.moves.textContent=moves;fitNum(el.moves);
 el.movesStat.classList.toggle('low',moves<=5&&!over);
 el.chipZen.hidden=true;
-let ni=0,nr=0,nc=0,np=poisonCount(),nf=0,ncol=0;
+let ni=0,nr=0,nc=0,np=poisonCount(),nf=0;
 for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-if(ICE[r]&&ICE[r][c]>0)ni++;if(ROCK[r]&&ROCK[r][c]>0)nr++;
-if(grid[r]&&grid[r][c]&&grid[r][c].cham)nc++;
-if(COL[r]&&COL[r][c]>0)ncol++;}
+if(ICE[r]&&ICE[r][c]>0)ni++;
+if(ROCK[r]&&ROCK[r][c]>0)nr++;
+if(grid[r]&&grid[r][c]&&grid[r][c].cham)nc++;}
 nf=Object.keys(FIRE).length;
 el.chipIce.hidden=ni===0;el.chipIceN.textContent=ni;
 el.chipRock.hidden=nr===0;el.chipRockN.textContent=nr;
 el.chipCham.hidden=nc===0;el.chipChamN.textContent=nc;
 el.chipPoison.hidden=np===0;el.chipPoisonN.textContent=np;
-el.chipFire.hidden=nf===0;el.chipFireN.textContent=nf;
-el.chipCols.hidden=ncol===0;el.chipColsN.textContent=ncol;}
+el.chipFire.hidden=nf===0;el.chipFireN.textContent=nf;}
 el.best.textContent=fmt(getBest(mode));fitNum(el.best);
 drawGoalGem();
 updateBossUI();}
