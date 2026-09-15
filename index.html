@@ -2284,29 +2284,17 @@ function drawGoalGem(){
 }
 function drawColumn(r,c){
   const p=cellXY(r,c);
-  const below=COL[r+1]?.[c]>0;
   const s=cell;
-  // Тень под нижней клеткой колонны
-  if(!below){
-    ctx.save();
-    ctx.fillStyle='rgba(0,0,0,.42)';
-    ctx.beginPath();ctx.ellipse(p.x,p.y+cell*.42,cell*.42,cell*.14,0,0,7);ctx.fill();
-    ctx.restore();
-  }
-  // Шахта на всех клетках, кроме нижней
-  if(below&&COL_SPR.shaft){
+  if(COL_SPR.shaft){
     ctx.drawImage(COL_SPR.shaft,p.x-s/2,p.y-s/2,s,s);
   }
-  // Основание на нижней клетке
-  if(!below&&COL_SPR.base){
-    ctx.drawImage(COL_SPR.base,p.x-s/2,p.y-s/2,s,s);
-  }
-  // Свечение вокруг колонны
-  const pulse=0.1+0.05*Math.sin(performance.now()*0.002+r+c);
+  // мягкое свечение вокруг колонны
+  const pulse=0.08+0.04*Math.sin(performance.now()*0.002+r+c);
   ctx.save();
   ctx.globalAlpha=pulse;
   const gg=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,cell*.55);
-  gg.addColorStop(0,'rgba(255,214,107,.6)');gg.addColorStop(1,'rgba(255,214,107,0)');
+  gg.addColorStop(0,'rgba(255,214,107,.6)');
+  gg.addColorStop(1,'rgba(255,214,107,0)');
   ctx.fillStyle=gg;
   ctx.fillRect(p.x-cell*.55,p.y-cell*.55,cell*1.1,cell*1.1);
   ctx.restore();
