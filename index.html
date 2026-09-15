@@ -2099,7 +2099,7 @@ $('#startOv').classList.add('hidden');$('#overOv').classList.add('hidden');
 Snd.init();
 if(fresh)introFall();
 if(allSettled())busy=false;else fallRes={res:()=>{busy=false}};}
-  if(fresh && m === 'classic' && level === 1 && tutorialOn()){
+  if(m === 'classic' && level === 1 && tutorialOn()){
     setTimeout(async ()=>{
         await showPlate('💎', 'Как играть',
             'Меняй местами соседние камни свайпом или тапом. Собирай 3 и более одинаковых в ряд — они исчезают, и ты получаешь очки.');
