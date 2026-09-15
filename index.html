@@ -1213,8 +1213,8 @@ if(l>=14&&!seenCols&&colCount()>0){seenCols=true;store.set('sv-seen-cols','1');
 else if(l>=7&&!seenFire&&levelHazards(l).fire>0){seenFire=true;store.set('sv-seen-fire','1');ico='🔥';text='Новое: ОГОНЬ! Горящая клетка взрывается через 3 хода. '+text;}
 else if(l>=9&&!seenPoison&&levelHazards(l).poison>0){seenPoison=true;store.set('sv-seen-poison','1');ico='☠';text='Новое: ЯД! Зелёный камень испускает ядовитый пар. Расползается каждые 3 хода. '+text;}
 else if(l>=12&&!seenCham){seenCham=true;store.set('sv-seen-cham','1');ico='🦎';text='Новое: ХАМЕЛЕОН. Меняет цвет каждый ход. '+text;}
-else if(added.ice&&!seenIce){seenIce=true;ico='❄';text='Новое: ЛЁД. Собирай комбинации рядом, чтобы скалывать. '+text;}
-else if(added.rock&&!seenRock){seenRock=true;ico='⛰';text='Новое: ВАЛУНЫ. Бей совпадениями рядом. '+text;}
+else if(!seenIce&&levelHazards(l).ice>0){seenIce=true;ico='❄';text='Новое: ЛЁД. Собирай комбинации рядом, чтобы скалывать. '+text;}
+else if(!seenRock&&levelHazards(l).rock>0){seenRock=true;ico='⛰';text='Новое: ВАЛУНЫ. Бей совпадениями рядом. '+text;}
 return{ico,title:'Уровень '+l+' · '+th,text};}
 function spawnFire(l){
     if(mode!=='classic') return;
