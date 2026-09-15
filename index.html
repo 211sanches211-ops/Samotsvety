@@ -1152,9 +1152,36 @@ if(goal.type==='special')return'Цель: создай '+goal.need+' спецк�
 if(goal.type==='clean')return'Цель: очисти поле от ВСЕХ льдин и валунов.';
 if(goal.type==='color2')return'Цель: собери 2 разных цвета.';
 return'Цель: '+fmt(goal.need)+' очков.';}
+let themePref=store.get('sv-theme','auto');
+const THEME_SHORT=['Классическая','Изумрудная','Аметистовая','Рубиновая','Золотая'];
+function currentTheme(){
+if(themePref!=='auto')return clamp(parseInt(themePref)||0,0,4);
+if(isZen())return 0;
+return Math.floor((level-1)/5)%THEMES.length;
+}
 function applyTheme(){
-const th=isZen()?5:Math.floor((level-1)/5)%THEMES.length;
-document.body.dataset.theme=String(th%5);}
+document.body.dataset.theme=String(currentTheme());
+paintThemeBtn();
+}
+function paintThemeBtn(){
+const b=$('#btnThemeSet');if(!b)return;
+b.textContent=(themePref==='auto'?'Авто: ':'')+THEME_SHORT[currentTheme()];
+const cs=getComputedStyle(document.body);
+const fa=cs.getPropertyValue('--frameA').trim();
+const fb=cs.getPropertyValue('--frameB').trim();
+b.style.background='linear-gradient(160deg,'+fa+','+fb+')';
+b.style.boxShadow='0 4px 0 rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.18)';
+}
+$('#btnThemeSet').addEventListener('click',()=>{
+Snd.init();
+const order=['auto','0','1','2','3','4'];
+let i=order.indexOf(themePref);if(i<0)i=0;
+themePref=order[(i+1)%order.length];
+store.set('sv-theme',themePref);
+applyTheme();
+Snd.tick();
+});
+
 function updateBossUI(){
 const active=mode==='classic'&&goal&&goal.type==='boss';
 $('#bossbar').hidden=!active;
@@ -3232,7 +3259,8 @@ if(typeof Snd !== 'undefined' && Snd.on && coins > 0){ Snd.init(); Snd.coins(); 
   var ov=document.createElement('div');ov.className='overlay';var icon=type==='gold'?'🏆':type==='silver'?'🥈':'🥉';if(coins===0){ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">Сундук получен!</h3><p style="color:#bfe6ff;font-size:16px">Открой его в инвентаре</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">OK</button></div>';}else{ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">Сундук открыт!</h3><p style="color:#ffd66b;font-size:18px">💰 +'+coins+' монет</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">Забрать</button></div>';}document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);document.getElementById('btnX').onclick=function(){ov.remove();};}
 function applySkin(skinId){var skins={classic:{frameA:'#143249',frameB:'#0b1d2c'},emerald:{frameA:'#1a4a3a',frameB:'#0d2c22'},ruby:{frameA:'#4a1a2a',frameB:'#2c0d1a'},amethyst:{frameA:'#3a1a4a',frameB:'#1f0d2c'}};var s=skins[skinId];if(!s)return;document.body.style.setProperty('--frameA',s.frameA);document.body.style.setProperty('--frameB',s.frameB);invStore.set('sv-active-skin',skinId);}
 window._onLevelComplete=function(completedLevel){if(completedLevel<1)return;var roll=Math.random();var type=null;if(roll<0.05)type='gold';else if(roll<0.15)type='silver';else if(roll<0.40)type='bronze';if(!type)return;invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();setTimeout(function(){showReward(type,0);},1500);};
-var savedSkin=invStore.get('sv-active-skin','classic');applySkin(savedSkin);
+// скин при старте не применяем: его инлайн-цвета перекрывали темы
+
 setTimeout(function(){var t=document.getElementById('btnInvMenu');var g=document.getElementById('btnInvGame');if(t)t.onclick=showInv;if(g){g.onclick=showInv;updateBadge();}},1000);
 })();
 </script>
