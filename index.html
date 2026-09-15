@@ -2066,59 +2066,55 @@ function introFall(){
 for(const row of grid)for(const g of row){if(!g)continue;const p=cellXY(g.r,g.c);
 g.y=p.y-boardPx*1.15-(g.c*.45+g.r*.2)*cell-rnd(0,cell);g.falling=true;g.vy=0;}}
 function beginRun(fresh,m,data){
-runId++;over=false;started=true;busy=true;selected=null;hintPair=null;dragStart=null;
-hammerAim=false;swapFirst=null;hidePlate();
-rushT=0;rushUsed=false;movesInLevel=0;gateWarned=false;moveCount=0;FIRE={};POISON={};POISON_AGE={};specialCount=0;
-devCheat=false;
-lastMove=null;
-undoB=0;
-nextUndoAt=UNDO_FIRST;
-document.querySelector('.board-frame').classList.remove('rush');
-tweens.length=0;particles.length=0;popups.length=0;fxBeams.length=0;fxRings.length=0;
-glints.length=0;fallRes=null;maxCombo=1;lastTick=99;seenIce=false;seenRock=false;seenCham=false;seenFire=false;seenPoison=false;seenCols=false;
-if(fresh){
-mode=m;
-score=0;dispScore=0;lastShown=-1;level=1;moves=MOVES_PER_LEVEL;
-levelStartScore=0;timeLeft=TIME_START;ham=0;frz=0;swapB=0;nextBonusAt=3000;
-nextHamAt=HAM_FIRST;nextFrzAt=FRZ_FIRST;nextSwapAt=SWAP_FIRST;
-COL=makeCols(1);
-genBoard();
-placeObstacles(1);
-spawnFire(1);spawnPoison(1);
-if(fresh){
-    mode=m;
-    score=0;dispScore=0;lastShown=-1;level=1;moves=MOVES_PER_LEVEL;
-    levelStartScore=0;timeLeft=TIME_START;ham=0;frz=0;swapB=0;nextBonusAt=3000;
-    nextHamAt=HAM_FIRST;nextFrzAt=FRZ_FIRST;nextSwapAt=SWAP_FIRST;
-    COL=makeCols(1);
-    genBoard();
-    placeObstacles(1);
-    spawnFire(1);spawnPoison(1);
-    if(m==='zen') goal=null;
-    else {
-        goal=makeGoal(1);
-        if(goal&&goal.type==='clean'){
-            goal.needIce=sumIceLayers();
-            goal.needRock=rockCount();
-            goal.ready=true;
+    runId++;over=false;started=true;busy=true;selected=null;hintPair=null;dragStart=null;
+    hammerAim=false;swapFirst=null;hidePlate();
+    rushT=0;rushUsed=false;movesInLevel=0;gateWarned=false;moveCount=0;FIRE={};POISON={};POISON_AGE={};specialCount=0;
+    devCheat=false;
+    lastMove=null;
+    undoB=0;
+    nextUndoAt=UNDO_FIRST;
+    document.querySelector('.board-frame').classList.remove('rush');
+    tweens.length=0;particles.length=0;popups.length=0;fxBeams.length=0;fxRings.length=0;
+    glints.length=0;fallRes=null;maxCombo=1;lastTick=99;
+    seenIce=false;seenRock=false;seenCham=false;seenFire=false;seenPoison=false;seenCols=false;
+    if(fresh){
+        mode=m;
+        score=0;dispScore=0;lastShown=-1;level=1;moves=MOVES_PER_LEVEL;
+        levelStartScore=0;timeLeft=TIME_START;ham=0;frz=0;swapB=0;nextBonusAt=3000;
+        nextHamAt=HAM_FIRST;nextFrzAt=FRZ_FIRST;nextSwapAt=SWAP_FIRST;
+        COL=makeCols(1);
+        genBoard();
+        placeObstacles(1);
+        spawnFire(1);spawnPoison(1);
+        if(m==='zen'){
+            goal=null;
+        } else {
+            goal=makeGoal(1);
+            if(goal&&goal.type==='clean'){
+                goal.needIce=sumIceLayers();
+                goal.needRock=rockCount();
+                goal.ready=true;
+            }
         }
+    } else {
+        restoreGame(data);
     }
-}
-else restoreGame(data);
-if(goal&&goal.type==='boss')paintGolem();
-applyModeUI();applyTheme();updateHUD();updateBoosterUI();updateBossUI();
-$('#startOv').classList.add('hidden');$('#overOv').classList.add('hidden');
-Snd.init();
-if(fresh)introFall();
-if(allSettled())busy=false;else fallRes={res:()=>{busy=false}};}
-  if(m === 'classic' && level === 1 && tutorialOn()){
-    setTimeout(async ()=>{
-        await showPlate('💎', 'Как играть',
-            'Меняй местами соседние камни свайпом или тапом. Собирай 3 и более одинаковых в ряд — они исчезают, и ты получаешь очки.');
-        await new Promise(r=>setTimeout(r, 300));
-        if(goal) await showPlate('⭐', 'Цель уровня',
-            'Набери ' + fmt(goal.need) + ' очков за 20 ходов.');
-    }, 800);
+    if(goal&&goal.type==='boss') paintGolem();
+    applyModeUI();applyTheme();updateHUD();updateBoosterUI();updateBossUI();
+    $('#startOv').classList.add('hidden');
+    $('#overOv').classList.add('hidden');
+    Snd.init();
+    if(fresh) introFall();
+    if(allSettled()) busy=false; else fallRes={res:()=>{busy=false}};
+    if(m === 'classic' && level === 1 && tutorialOn()){
+        setTimeout(async ()=>{
+            await showPlate('💎', 'Как играть',
+                'Меняй местами соседние камни свайпом или тапом. Собирай 3 и более одинаковых в ряд — они исчезают, и ты получаешь очки.');
+            await new Promise(r=>setTimeout(r, 300));
+            if(goal) await showPlate('⭐', 'Цель уровня',
+                'Набери ' + fmt(goal.need) + ' очков за 20 ходов.');
+        }, 800);
+    }
 }
 function toMenu(){
   if(started && isZen() && !over){
