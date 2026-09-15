@@ -705,6 +705,18 @@ iceBreak(){this.glass(.16,.22,3600);this.bell(1800,.18,.12);this.bell(2400,.14,.
 rockHit(){this.noise(.09,.22,700);this.bell(160,.1,.1);},
 rockBreak(){this.noise(.26,.3,1000);this.bell(120,.3,.2);this.glass(.1,.12,2500);},
 colHit(){this.noise(.12,.25,500);this.bell(180,.15,.12);this.glass(.04,.06,800);},
+           coins(){
+    if(!this.on||!this.ctx)return;
+    const notes=[523,587,659,784,880,988,1047,1175,1319,1568];
+    notes.forEach((f,i)=>{
+        setTimeout(()=>{
+            this.bell(f,.18,.14);
+            this.bell(f*2.01,.14,.06);
+        }, i*45);
+    });
+    this.glass(.35,.06,6000);
+    this.glass(.5,.04,8000);
+},
 };
 const canvas=$('#board'), ctx=canvas.getContext('2d');
 let boardPx=0, cell=0, dpr=1;
