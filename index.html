@@ -1039,7 +1039,7 @@ const rushOn=()=>rushT>0;
 const isZen=()=>mode==='zen';
 const colCount=()=>{let n=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(COL[r][c]>0)n++;return n;};
 let seenCols=false;
-let seenIce=false, seenRock=false;let tutorialOn = store.get('sv-tutorial','1')==='1';
+let seenIce=false, seenRock=false;
 let seenFire=store.get('sv-seen-fire','')==='1';
 let seenPoison=store.get('sv-seen-poison','')==='1';
 let seenCham=store.get('sv-seen-cham','')==='1';
@@ -1202,7 +1202,7 @@ const r=plateRes;plateRes=null;if(r)r();}
 function levelInfos(l,added){
     const th=THEMES[Math.floor((l-1)/5)%THEMES.length];
     const plates=[];
-const skipTutorial = !tutorialOn;
+const skipTutorial = !tutorialOn();
 
     // Босс
     if(goal&&goal.type==='boss'){
@@ -1218,7 +1218,7 @@ const skipTutorial = !tutorialOn;
     }
 
     // ОБУЧАЮЩИЕ ПЛАШКИ — только при первом появлении за забег
-  
+
     if(!skipTutorial&&l>=14&&!seenCols&&colCount()>0){
         seenCols=true;
         plates.push({ico:'🧱',title:'Новое: КОЛОННЫ',
@@ -2099,6 +2099,15 @@ $('#startOv').classList.add('hidden');$('#overOv').classList.add('hidden');
 Snd.init();
 if(fresh)introFall();
 if(allSettled())busy=false;else fallRes={res:()=>{busy=false}};}
+  if(fresh && m === 'classic' && level === 1 && tutorialOn()){
+    setTimeout(async ()=>{
+        await showPlate('💎', 'Как играть',
+            'Меняй местами соседние камни свайпом или тапом. Собирай 3 и более одинаковых в ряд — они исчезают, и ты получаешь очки.');
+        await new Promise(r=>setTimeout(r, 300));
+        if(goal) await showPlate('⭐', 'Цель уровня',
+            'Набери ' + fmt(goal.need) + ' очков за 20 ходов.');
+    }, 800);
+}
 function toMenu(){
   if(started && isZen() && !over){
     gameOver();
@@ -2670,21 +2679,24 @@ function toggleSound(){Snd.on=!Snd.on;store.set('sv-snd',Snd.on?'1':'0');
 paintSound();if(Snd.on){Snd.init();Snd.tick();}}
 btnSound.addEventListener('click',toggleSound);
 $('#btnSoundSet').addEventListener('click',toggleSound);
-  // ===== ОБУЧЕНИЕ =====
+// ===== ОБУЧЕНИЕ =====
+function tutorialOn(){ return store.get('sv-tutorial','1')==='1'; }
 function paintTutorial(){
-    const b=$('#btnTutorialSet');
-    if(b) b.textContent = tutorialOn ? 'Включено' : 'Выключено';
+  const b=$('#btnTutorialSet');
+  if(b) b.textContent = tutorialOn() ? 'Включено' : 'Выключено';
 }
 function toggleTutorial(){
-    tutorialOn = !tutorialOn;
-    store.set('sv-tutorial', tutorialOn ? '1' : '0');
-    if(tutorialOn){
-        // Сброс флагов «уже видел» — чтобы плашки показывались заново
-        seenIce=false;seenRock=false;seenFire=false;seenPoison=false;seenCham=false;seenCols=false;
-    }
-    paintTutorial();
+  const v = tutorialOn() ? '0' : '1';
+  store.set('sv-tutorial', v);
+  if(v === '1'){
+    // Обучение включили — сбрасываем флаги, чтобы плашки показались заново
+    seenIce=false;seenRock=false;seenFire=false;seenPoison=false;seenCham=false;seenCols=false;
+  }
+  paintTutorial();
+  if(Snd.on){ Snd.init(); Snd.tick(); }
 }
 $('#btnTutorialSet').addEventListener('click',toggleTutorial);
+paintTutorial();
 document.addEventListener('pointerdown',e=>{
 const b=e.target.closest?e.target.closest('.btn'):null;
 if(!b)return;
