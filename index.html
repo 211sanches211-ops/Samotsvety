@@ -712,20 +712,29 @@ rockHit(){this.noise(.09,.22,700);this.bell(160,.1,.1);},
 rockBreak(){this.noise(.26,.3,1000);this.bell(120,.3,.2);this.glass(.1,.12,2500);},
 colHit(){this.noise(.12,.25,500);this.bell(180,.15,.12);this.glass(.04,.06,800);},
          coins(){
-    if(!this.on||!this.ctx)return;
-    if(this.ctx.state==='suspended') this.ctx.resume();
-    const notes=[523,587,659,784,880,988,1047,1175,1319,1568];
-    notes.forEach((f,i)=>{
-        setTimeout(()=>{
-            this.bell(f,.25,.30);
-            this.bell(f*2.01,.20,.15);
-        }, i*45);
-    });
-    this.glass(.35,.10,6000);
-    this.glass(.5,.08,8000);
-},
+if(!this.on||!this.ctx)return;
+const play=()=>{
+const notes=[523,587,659,784,880,988,1047,1175,1319,1568];
+notes.forEach((f,i)=>{
+setTimeout(()=>{
+this.bell(f,.25,.30);
+this.bell(f*2.01,.20,.15);
+}, i*45);
+});
+this.glass(.35,.10,6000);
+this.glass(.5,.08,8000);
 };
+if(this.ctx.state==='suspended'||this.ctx.state==='interrupted'){
+this.ctx.resume().then(play).catch(()=>{});
+}else{
+play();
+}
+},
+
+};
+window.Snd=Snd; // делаем Snd видимым через window для соседних скриптов
 const canvas=$('#board'), ctx=canvas.getContext('2d');
+
 let boardPx=0, cell=0, dpr=1;
 function shade(hex,amt){const n=parseInt(hex.slice(1),16);let r=n>>16&255,g=n>>8&255,b=n&255;
 if(amt>=0){r+=(255-r)*amt;g+=(255-g)*amt;b+=(255-b)*amt}else{r*=1+amt;g*=1+amt;b*=1+amt}
@@ -3109,7 +3118,8 @@ setTimeout(function(){
     var items2 = ov.querySelectorAll('.chest-item');
     for(var k=0;k<items2.length;k++){
         items2[k].onclick=function(){
-            if(window.Snd){ Snd.init(); }
+if(typeof Snd !== 'undefined'){ Snd.init(); }
+
             var idx=parseInt(this.dataset.idx);
             var chest=invChests[idx];
             if(chest&&!chest.opened){
@@ -3217,7 +3227,8 @@ document.body.appendChild(ov);
 setTimeout(function(){ov.classList.add('on');},10);
 }
 function showReward(type,coins){
-  if(window.Snd && Snd.on && coins > 0){ Snd.init(); Snd.coins(); }
+if(typeof Snd !== 'undefined' && Snd.on && coins > 0){ Snd.init(); Snd.coins(); }
+
   var ov=document.createElement('div');ov.className='overlay';var icon=type==='gold'?'🏆':type==='silver'?'🥈':'🥉';if(coins===0){ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">Сундук получен!</h3><p style="color:#bfe6ff;font-size:16px">Открой его в инвентаре</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">OK</button></div>';}else{ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">Сундук открыт!</h3><p style="color:#ffd66b;font-size:18px">💰 +'+coins+' монет</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">Забрать</button></div>';}document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);document.getElementById('btnX').onclick=function(){ov.remove();};}
 function applySkin(skinId){var skins={classic:{frameA:'#143249',frameB:'#0b1d2c'},emerald:{frameA:'#1a4a3a',frameB:'#0d2c22'},ruby:{frameA:'#4a1a2a',frameB:'#2c0d1a'},amethyst:{frameA:'#3a1a4a',frameB:'#1f0d2c'}};var s=skins[skinId];if(!s)return;document.body.style.setProperty('--frameA',s.frameA);document.body.style.setProperty('--frameB',s.frameB);invStore.set('sv-active-skin',skinId);}
 window._onLevelComplete=function(completedLevel){if(completedLevel<1)return;var roll=Math.random();var type=null;if(roll<0.05)type='gold';else if(roll<0.15)type='silver';else if(roll<0.40)type='bronze';if(!type)return;invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();setTimeout(function(){showReward(type,0);},1500);};
