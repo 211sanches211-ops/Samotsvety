@@ -2283,27 +2283,48 @@ function drawGoalGem(){
     ggx2.drawImage(SPR[goal.colors[1]],0,0,44,44);
 }
 function drawColumn(r,c){
-  const p=cellXY(r,c);
-  const above=COL[r-1]?.[c]>0;
-  const below=COL[r+1]?.[c]>0;
-  if(!below){
+    const p=cellXY(r,c);
+    const above=COL[r-1]?.[c]>0;
+    const below=COL[r+1]?.[c]>0;
+    const s=cell;
+
+    // Тень под нижней клеткой колонны
+    if(!below){
+        ctx.save();
+        ctx.fillStyle='rgba(0,0,0,.42)';
+        ctx.beginPath();
+        ctx.ellipse(p.x,p.y+cell*.42,cell*.42,cell*.14,0,0,7);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // 1. Нижняя клетка — base (только если это не единственная клетка)
+    if(!below && above && COL_SPR.base){
+        ctx.drawImage(COL_SPR.base, p.x-s/2, p.y-s/2, s, s);
+        return;
+    }
+
+    // 2. Верхняя клетка — cap
+    if(!above && COL_SPR.cap){
+        ctx.drawImage(COL_SPR.cap, p.x-s/2, p.y-s/2, s, s);
+        return;
+    }
+
+    // 3. Средняя клетка — shaft
+    if(COL_SPR.shaft){
+        ctx.drawImage(COL_SPR.shaft, p.x-s/2, p.y-s/2, s, s);
+    }
+
+    // 4. Подсветка
+    const pulse=0.1+0.05*Math.sin(performance.now()*0.002+r+c);
     ctx.save();
-    ctx.fillStyle='rgba(0,0,0,.42)';
-    ctx.beginPath();ctx.ellipse(p.x,p.y+cell*.42,cell*.42,cell*.14,0,0,7);ctx.fill();
+    ctx.globalAlpha=pulse;
+    const gg=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,cell*.55);
+    gg.addColorStop(0,'rgba(255,214,107,.6)');
+    gg.addColorStop(1,'rgba(255,214,107,0)');
+    ctx.fillStyle=gg;
+    ctx.fillRect(p.x-cell*.55, p.y-cell*.55, cell*1.1, cell*1.1);
     ctx.restore();
-  }
-  const s=cell;
-  if(!above&&COL_SPR.cap){ctx.drawImage(COL_SPR.cap,p.x-s/2,p.y-s/2,s,s);}
-  else if(COL_SPR.shaft){ctx.drawImage(COL_SPR.shaft,p.x-s/2,p.y-s/2,s,s);}
-  if(!below&&COL_SPR.base){ctx.drawImage(COL_SPR.base,p.x-s/2,p.y-s/2,s,s);}
-  const pulse=0.1+0.05*Math.sin(performance.now()*0.002+r+c);
-  ctx.save();
-  ctx.globalAlpha=pulse;
-  const gg=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,cell*.55);
-  gg.addColorStop(0,'rgba(255,214,107,.6)');gg.addColorStop(1,'rgba(255,214,107,0)');
-  ctx.fillStyle=gg;
-  ctx.fillRect(p.x-cell*.55,p.y-cell*.55,cell*1.1,cell*1.1);
-  ctx.restore();
 }
 function render(t){
 ctx.setLineDash([]);
