@@ -1021,6 +1021,7 @@ let grid=[], ICE=[], ROCK=[], COL=[], FIRE={}, POISON={}, POISON_AGE={}, goal=nu
 mode='classic', score=0, dispScore=0, lastShown=-1,
 level=1, moves=MOVES_PER_LEVEL, levelStartScore=0, timeLeft=TIME_START,
 ham=0, frz=0, swapB=0, undoB=0, nextBonusAt=3000, nextHamAt=HAM_FIRST, nextFrzAt=FRZ_FIRST, nextSwapAt=SWAP_FIRST, nextUndoAt=UNDO_FIRST,
+invHam=+store.get('sv-inv-ham','0')||0, invFrz=+store.get('sv-inv-frz','0')||0, invSwap=+store.get('sv-inv-swap','0')||0, invUndo=+store.get('sv-inv-undo','0')||0,
 hammerAim=false, swapAim=false, swapFirst=null,
 rushT=0, rushPartT=0, rushUsed=false, movesInLevel=0, gateWarned=false, moveCount=0,
 specialCount=0,
@@ -2080,7 +2081,11 @@ function beginRun(fresh,m,data){
     if(fresh){
         mode=m;
         score=0;dispScore=0;lastShown=-1;level=1;moves=MOVES_PER_LEVEL;
-        levelStartScore=0;timeLeft=TIME_START;ham=0;frz=0;swapB=0;nextBonusAt=3000;
+       levelStartScore=0;timeLeft=TIME_START;nextBonusAt=3000;
+ham = invHam; frz = invFrz; swapB = invSwap; undoB = invUndo;
+invHam = invFrz = invSwap = invUndo = 0;
+store.set('sv-inv-ham','0'); store.set('sv-inv-frz','0');
+store.set('sv-inv-swap','0'); store.set('sv-inv-undo','0');
         nextHamAt=HAM_FIRST;nextFrzAt=FRZ_FIRST;nextSwapAt=SWAP_FIRST;
         COL=makeCols(1);
         genBoard();
@@ -3043,12 +3048,27 @@ function render(){
   var html = '';
   html += '<div class="plate-card" style="max-width:370px;max-height:85vh;overflow-y:auto">';
   html += '<h3 style="color:#ffd66b;margin-bottom:14px">💰 Монеты: '+invCoins+'</h3>';
-  html += '<div style="display:flex;gap:8px;margin-bottom:14px">';
-  html += '<button id="tabChests" class="btn ghost" style="flex:1;padding:8px;font-size:13px">📦 Сундуки</button>';
-  html += '<button id="tabShop" class="btn ghost" style="flex:1;padding:8px;font-size:13px">🛒 Магазин</button>';
-  html += '</div>';
-  
+ html += '<div style="display:flex;gap:8px;margin-bottom:14px">';
+html += '<button id="tabBoosters" class="btn ghost" style="flex:1;padding:8px;font-size:12px">🎁 Бустеры</button>';
+html += '<button id="tabChests" class="btn ghost" style="flex:1;padding:8px;font-size:12px">📦 Сундуки</button>';
+html += '<button id="tabShop" class="btn ghost" style="flex:1;padding:8px;font-size:12px">🛒 Магазин</button>';
+html += '</div>';
   if(tab === 0){
+    // Бустеры (то, что куплено в запас)
+    var inGame = (typeof started !== 'undefined') && started && !over;
+    var curHam  = inGame ? ham   : invHam;
+    var curFrz  = inGame ? frz   : invFrz;
+    var curSwap = inGame ? swapB : invSwap;
+    var curUndo = inGame ? undoB : invUndo;
+    var bHtml = '';
+    bHtml += '<div class="setrow" style="margin-bottom:8px"><span>⛏ Молот</span><b style="color:#ffd66b">'+curHam+'</b></div>';
+    bHtml += '<div class="setrow" style="margin-bottom:8px"><span>⏳ Часики</span><b style="color:#ffd66b">'+curFrz+'</b></div>';
+    bHtml += '<div class="setrow" style="margin-bottom:8px"><span>🔄 Обмен</span><b style="color:#ffd66b">'+curSwap+'</b></div>';
+    bHtml += '<div class="setrow" style="margin-bottom:8px"><span>↩️ Отмена</span><b style="color:#ffd66b">'+curUndo+'</b></div>';
+    bHtml += '<p style="color:#7fa5bd;font-size:11px;margin-top:12px">' + (inGame ? 'Бустеры активны в текущем забеге.' : 'Перейдут в игру, когда начнёшь забег.') + '</p>';
+    html += bHtml;
+}
+else if(tab === 1){
     var cHtml='';
     for(var i=0;i<invChests.length;i++){
       var c=invChests[i];
@@ -3059,7 +3079,9 @@ function render(){
     }
     if(!cHtml)cHtml='<div style="text-align:center;color:#7fa5bd;padding:20px;">Нет закрытых сундуков</div>';
     html += cHtml;
-  } else {
+}
+else {
+    // Магазин (как было)
     var shopHtml = '';
     var items = [
       { id:'ham',  icon:'⛏',  name:'Молот',  price:6000 },
@@ -3067,21 +3089,19 @@ function render(){
       { id:'swap', icon:'🔄',  name:'Обмен',  price:5000 },
       { id:'undo', icon:'↩️',  name:'Отмена', price:5000 }
     ];
+    var inGame2 = (typeof started !== 'undefined') && started && !over;
     for(var j=0;j<items.length;j++){
       var it = items[j];
       var currentCount = 0;
-      if(it.id === 'ham')  currentCount = (typeof ham   !== 'undefined') ? ham   : 0;
-      if(it.id === 'frz')  currentCount = (typeof frz   !== 'undefined') ? frz   : 0;
-      if(it.id === 'swap') currentCount = (typeof swapB !== 'undefined') ? swapB : 0;
-      if(it.id === 'undo') currentCount = (typeof undoB !== 'undefined') ? undoB : 0;
+      if(it.id === 'ham')  currentCount = inGame2 ? ham   : invHam;
+      if(it.id === 'frz')  currentCount = inGame2 ? frz   : invFrz;
+      if(it.id === 'swap') currentCount = inGame2 ? swapB : invSwap;
+      if(it.id === 'undo') currentCount = inGame2 ? undoB : invUndo;
       var isFull = currentCount >= BOOST_MAX;
-      var canBuy = !isFull && (invCoins >= it.price);
-      
       var btnText, btnBg, btnColor;
       if(isFull){ btnText = 'Максимум'; btnBg = '#2a3a46'; btnColor = '#5f87a0'; }
       else if(invCoins < it.price){ btnText = 'Мало'; btnBg = '#2a3a46'; btnColor = '#5f87a0'; }
       else { btnText = 'Купить'; btnBg = 'linear-gradient(#ffd66b,#ffb02e)'; btnColor = '#06202c'; }
-      
       shopHtml += '<div style="display:flex;align-items:center;gap:10px;background:rgba(8,22,34,.6);border-radius:12px;padding:10px 12px;margin-bottom:8px;">';
       shopHtml += '<div style="font-size:22px">'+it.icon+'</div>';
       shopHtml += '<div style="flex:1;text-align:left;font-size:13px;color:#cfe6f4;font-weight:700">'+it.name+' <span style="color:#7fa5bd;font-size:11px">'+currentCount+'/'+BOOST_MAX+'</span></div>';
@@ -3090,17 +3110,19 @@ function render(){
       shopHtml += '</div>';
     }
     html += shopHtml;
-  }
+}
   
   html += '<button id="btnC" class="btn ghost" style="width:100%;margin-top:16px">Закрыть</button>';
   html += '</div>';
   
   ov.innerHTML = html;
   
-  var tabChests = ov.querySelector('#tabChests');
-  var tabShop = ov.querySelector('#tabShop');
-  if(tabChests) tabChests.onclick = function(){ tab = 0; render(); };
-  if(tabShop)   tabShop.onclick   = function(){ tab = 1; render(); };
+  var tabBoosters = ov.querySelector('#tabBoosters');
+var tabChests = ov.querySelector('#tabChests');
+var tabShop = ov.querySelector('#tabShop');
+if(tabBoosters) tabBoosters.onclick = function(){ tab = 0; render(); };
+if(tabChests)   tabChests.onclick   = function(){ tab = 1; render(); };
+if(tabShop)     tabShop.onclick     = function(){ tab = 2; render(); };
   
   var items2 = ov.querySelectorAll('.chest-item');
   for(var k=0;k<items2.length;k++){
@@ -3134,15 +3156,24 @@ function render(){
         if(typeof Snd !== 'undefined' && Snd.bad) Snd.bad();
         return;
       }
-      invCoins -= price;
-      if(id === 'ham')  ham   = Math.min(BOOST_MAX, ham   + 1);
-      if(id === 'frz')  frz   = Math.min(BOOST_MAX, frz   + 1);
-      if(id === 'swap') swapB = Math.min(BOOST_MAX, swapB + 1);
-      if(id === 'undo') undoB = Math.min(BOOST_MAX, undoB + 1);
-      saveInv();
-      if(typeof updateBoosterUI === 'function') updateBoosterUI();
-      if(typeof Snd !== 'undefined' && Snd.spawn) Snd.spawn();
-      render();
+    invCoins -= price;
+if(started && !over){
+    // Игра идёт — начисляем сразу в бой
+    if(id === 'ham')  ham   = Math.min(BOOST_MAX, ham   + 1);
+    if(id === 'frz')  frz   = Math.min(BOOST_MAX, frz   + 1);
+    if(id === 'swap') swapB = Math.min(BOOST_MAX, swapB + 1);
+    if(id === 'undo') undoB = Math.min(BOOST_MAX, undoB + 1);
+    if(typeof updateBoosterUI === 'function') updateBoosterUI();
+} else {
+    // Меню — начисляем в кошелёк
+    if(id === 'ham'){  invHam++;  store.set('sv-inv-ham', invHam); }
+    if(id === 'frz'){  invFrz++;  store.set('sv-inv-frz', invFrz); }
+    if(id === 'swap'){ invSwap++; store.set('sv-inv-swap', invSwap); }
+    if(id === 'undo'){ invUndo++; store.set('sv-inv-undo', invUndo); }
+}
+saveInv();
+if(typeof Snd !== 'undefined' && Snd.spawn) Snd.spawn();
+render();
     };
   }
   
