@@ -1208,7 +1208,7 @@ text:'Создай '+goal.need+' спецкамня за уровень!'};
 if(goal&&goal.type==='color2')return{ico:'🎨',title:'Уровень '+l+' · Смешение',
 text:'Собери по '+goal.needEach+' кристаллов двух цветов!'};
 let ico='',text=goalLine();
-if(l>=14&&!seenCols&&colCount()>0){seenCols=true;store.set('sv-seen-cols','1');
+if(l>=14&&!seenCols&&colCount()>0){seenCols=true;
   ico='🧱';text='Новое: КОЛОННЫ! Их нельзя разбить даже молотом. Совпадения через них невозможны. '+text;}
 else if(l>=7&&!seenFire&&levelHazards(l).fire>0){seenFire=true;store.set('sv-seen-fire','1');ico='🔥';text='Новое: ОГОНЬ! Горящая клетка взрывается через 3 хода. '+text;}
 else if(l>=9&&!seenPoison&&levelHazards(l).poison>0){seenPoison=true;store.set('sv-seen-poison','1');ico='☠';text='Новое: ЯД! Зелёный камень испускает ядовитый пар. Расползается каждые 3 хода. '+text;}
@@ -1922,9 +1922,13 @@ else{if(score>bestZ){bestZ=score;store.set('sv-best-zen',bestZ);return true}}
 return false;}
 function saveGame(){
 if(!started||over||isZen()||devCheat)return;
-try{store.set(SAVE_KEY,JSON.stringify({v:2,mode,score,level,moves,levelStartScore,timeLeft,goal,ham,frz,swapB,undoB,nextBonusAt,
+try{store.set(SAVE_KEY,JSON.stringify({
+v:2,mode,score,level,moves,levelStartScore,timeLeft,goal,ham,frz,swapB,undoB,nextBonusAt,
 nha:nextHamAt,nfa:nextFrzAt,nsa:nextSwapAt,nuo:nextUndoAt,mvl:movesInLevel,
-board:grid.map(row=>row.map(g=>g?[g.t,g.special||null,g.cham?1:0]:null)),ice:ICE,rock:ROCK,col:COL,fire:FIRE,poison:POISON,poisonAge:POISON_AGE}))}catch(e){}}
+seenIce,seenRock,seenFire,seenPoison,seenCham,seenCols,
+board:grid.map(row=>row.map(g=>g?[g.t,g.special||null,g.cham?1:0]:null)),
+ice:ICE,rock:ROCK,col:COL,fire:FIRE,poison:POISON,poisonAge:POISON_AGE
+}))}catch(e){}}
 function loadSave(){try{const d=JSON.parse(store.get(SAVE_KEY,'null'));
 return d&&Array.isArray(d.board)&&d.board.length===ROWS&&d.mode!=='zen'?d:null}catch(e){return null}}
 function clearSave(){store.del(SAVE_KEY)}
@@ -1939,6 +1943,15 @@ function restoreGame(d){
     nextBonusAt=d.nextBonusAt||3000;nextHamAt=d.nha||HAM_FIRST;nextFrzAt=d.nfa||FRZ_FIRST;
     nextSwapAt=d.nsa||SWAP_FIRST;nextUndoAt=d.nuo||UNDO_FIRST;
     movesInLevel=d.mvl||0;gateWarned=false;moveCount=0;
+
+    // Восстанавливаем флаги «уже видел»
+    seenIce = d.seenIce || false;
+    seenRock = d.seenRock || false;
+    seenFire = d.seenFire || false;
+    seenPoison = d.seenPoison || false;
+    seenCham = d.seenCham || false;
+    seenCols = d.seenCols || false;
+
     if(d.v === 2 && Array.isArray(d.board) && d.board.length === ROWS && d.board[0].length === COLS){
         grid=d.board.map((row,r)=>row.map((cd,c)=>{
             if(!cd)return null;
@@ -1962,8 +1975,6 @@ function restoreGame(d){
             goal.ready=true;
         }
     }
-    seenIce=ICE.some(r=>r.some(v=>v>0));
-    seenRock=ROCK.some(r=>r.some(v=>v>0));
     if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
     if(grid.some(row=>row.length!==COLS))genBoard();
 }
@@ -2009,7 +2020,7 @@ undoB=0;
 nextUndoAt=UNDO_FIRST;
 document.querySelector('.board-frame').classList.remove('rush');
 tweens.length=0;particles.length=0;popups.length=0;fxBeams.length=0;fxRings.length=0;
-glints.length=0;fallRes=null;maxCombo=1;lastTick=99;seenIce=false;seenRock=false;seenCham=false;seenFire=false;seenPoison=false;
+glints.length=0;fallRes=null;maxCombo=1;lastTick=99;seenIce=false;seenRock=false;seenCham=false;seenFire=false;seenPoison=false;seenCols=false;
 if(fresh){
 mode=m;
 score=0;dispScore=0;lastShown=-1;level=1;moves=MOVES_PER_LEVEL;
