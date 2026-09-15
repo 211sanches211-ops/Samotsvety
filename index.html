@@ -660,8 +660,14 @@ async function renderLb(){
 function openLb(m){lbMode=m||lbMode;$('#lbOv').classList.remove('hidden');renderLb();
 lbFlush().then(()=>renderLb());}
 const Snd={ctx:null,on:store.get('sv-snd','1')==='1',
-init(){if(!this.ctx){try{this.ctx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
-if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume();},
+init(){
+    if(!this.ctx){
+        try{this.ctx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}
+    }
+    if(this.ctx && (this.ctx.state==='suspended'||this.ctx.state==='interrupted')){
+        this.ctx.resume().then(()=>{}).catch(()=>{});
+    }
+},
 bell(f,d,v){if(!this.on||!this.ctx)return;const t=this.ctx.currentTime;
 const mk=(fr,gv)=>{const o=this.ctx.createOscillator(),gn=this.ctx.createGain();
 o.type='sine';o.frequency.setValueAtTime(fr,t);
@@ -2764,7 +2770,14 @@ Snd.init();Snd.tick();
 $('#btnNickSave').addEventListener('click',saveNick);
 $('#nickInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveNick();});
 maybeNick();
-document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame();});
+document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){
+        saveGame();
+    } else {
+        // Вернулись на вкладку — будим звук
+        if(window.Snd) Snd.init();
+    }
+});
 window.addEventListener('beforeunload',()=>saveGame());
 window.addEventListener('pagehide',()=>{
   if(started&&isZen()&&!over&&score>0&&!devCheat){
