@@ -1234,10 +1234,10 @@ return'Цель: '+fmt(goal.need)+' очков.';}
 let themePref=store.get('sv-theme','auto');
 const THEME_SHORT=['Классическая','Изумрудная','Аметистовая','Рубиновая','Золотая'];
 function currentTheme(){
-if(themePref!=='auto')return clamp(parseInt(themePref)||0,0,4);
+if(themePref!=='auto')return clamp(parseInt(themePref)||0,4);
 if(isZen())return 0;
 if(isSurv())return Math.floor((wave-1)/5)%THEMES.length;
-return Math.floor((level-1)/5)%THEMES.length;level-1)/5)%THEMES.length;
+return Math.floor((level-1)/5)%THEMES.length;
 }
 function applyTheme(){
 document.body.dataset.theme=String(currentTheme());
