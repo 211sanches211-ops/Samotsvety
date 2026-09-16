@@ -397,6 +397,7 @@ min-height:100dvh;padding:30px}
 <button class="btn ghost wide" id="btnContinue" hidden>▶&nbsp; Продолжить — <span id="contInfo"></span></button>
 <button class="btn rating wide" id="btnLb" style="margin-top:10px">🏆 Рейтинг</button>
 <button class="btn ghost wide" id="btnInvMenu" style="margin-top:10px">📦 Инвентарь</button>
+<button class="btn ghost wide" id="btnDaily" style="margin-top:10px">🗓 Задания дня</button>
 <div class="menurow">
 <button class="btn ghost wide" id="btnHow">❓ Как играть</button>
 <button class="btn ghost wide" id="btnSettings">⚙️ Настройки</button>
@@ -486,6 +487,15 @@ min-height:100dvh;padding:30px}
 <button class="btn ghost big" id="btnLbRefresh">↻ Обновить</button>
 <button class="btn big" id="btnLbClose">Закрыть</button>
 </div>
+</div>
+</div>
+<div class="overlay hidden" id="dailyOv">
+<div class="card">
+<h2 class="card-title" style="font-size:clamp(20px,5vw,28px)">🗓 Задания дня</h2>
+<div class="setrow" id="dailyStreak" style="justify-content:center"></div>
+<div class="setrow" id="dailyChestRow"></div>
+<div id="dailyList"></div>
+<div class="ovbtns"><button class="btn big" id="btnDailyClose">Закрыть</button></div>
 </div>
 </div>
 <div class="overlay hidden" id="devOv">
@@ -1105,6 +1115,7 @@ function makeCols(l){
     return empty;
 }
 function addScore(base){const g=Math.round(base*(rushOn()?2:1));score+=g;
+dailyAdd('score',g);
 if(started&&!over&&!isZen()){
 while(score>=nextHamAt){nextHamAt+=HAM_STEP;
 if(ham<BOOST_MAX){ham++;showToast('⛏ Молот +1');Snd.spawn();updateBoosterUI();}}
@@ -1636,7 +1647,7 @@ applyGravity();await waitFall(id);}
 let combo=0;
 while(groups.length){
 if(id!==runId||over)return;combo++;
-maxCombo=Math.max(maxCombo,combo);maybeRush(combo);
+maxCombo=Math.max(maxCombo,combo);maybeRush(combo);dailyAdd('combo',combo);
 const specs=[];
 for(const g of groups)for(const k of g.cells){const[r,c]=k.split(',').map(Number);const gg=grid[r][c];
 if(gg&&(gg.special==='line-h'||gg.special==='line-v'||gg.special==='prism'))specs.push(gg);}
@@ -1662,7 +1673,9 @@ popup(p.x,p.y,'МЕГА-БОМБА!',true,'#ffb066');}
 if(goal&&goal.type==='special'&&spawns.length){
 goal.done=Math.min(goal.need,goal.done+spawns.length);
 }
+dailyAdd('special',spawns.length);
 const set=new Set();groups.forEach(gr=>gr.cells.forEach(k=>set.add(k)));
+dailyAdd('gems',set.size);
 const direct=new Set();
 const triggered=expandWithSpecials(set,direct);
 damageObstacles(set,direct);
@@ -1903,7 +1916,7 @@ recolorChams();
 if(!findHintPair()){await shuffleBoard(id);if(id!==runId)return;}
 busy=false;hintPair=null;saveGame();}
 async function levelUp(id){
-saveBest();
+saveBest();dailyAdd('levels',1);
 confetti();Snd.levelup();buzz([20,40,20]);
 showToast('🎉 Уровень '+level+' пройден!');
 await wait(1250);if(id!==runId)return;
@@ -2765,6 +2778,93 @@ function toggleTutorial(){
 }
 $('#btnTutorialSet').addEventListener('click',toggleTutorial);
 paintTutorial();
+  // ===== ЕЖЕДНЕВНЫЕ ЗАДАНИЯ И СУНДУК =====
+const DAILY_KEY='sv-daily-v1';
+function dayKey(off){const d=new Date(Date.now()-(off||0)*86400000);
+return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const todayKey=()=>dayKey(0);
+const QUEST_POOL=[
+{id:'score',ico:'💰',txt:n=>'Набрать '+fmt(n)+' очков за день',need:[6000,10000,16000],rw:n=>Math.round(n/12)},
+{id:'gems',ico:'💎',txt:n=>'Собрать самоцветов: '+n,need:[60,90,130],rw:()=>800},
+{id:'special',ico:'⚡',txt:n=>'Создать спецкамней: '+n,need:[3,5,7],rw:()=>1000},
+{id:'levels',ico:'🏁',txt:n=>'Пройти уровней: '+n,need:[1,2,3],rw:()=>1200},
+{id:'combo',ico:'🔥',txt:n=>'Достичь комбо ×'+n,need:[3,4,5],rw:()=>900},
+{id:'chest',ico:'📦',txt:n=>'Открыть сундуков: '+n,need:[1,2],rw:()=>700},
+];
+let daily=null;
+function seedRand(seed){let h=2166136261>>>0;
+for(let i=0;i<seed.length;i++){h^=seed.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}
+return function(){h^=h<<13;h>>>=0;h^=h>>>17;h^=h<<5;h>>>=0;return h/4294967296;};}
+function genQuests(tk){const r=seedRand(tk);const pool=QUEST_POOL.slice();const out=[];
+for(let i=0;i<3;i++){const t=pool.splice(Math.floor(r()*pool.length),1)[0];
+const need=t.need[Math.floor(r()*t.need.length)];
+out.push({id:t.id,need,done:0,claim:false,rw:t.rw(need)});}
+return out;}
+function dailyLoad(){
+try{daily=JSON.parse(store.get(DAILY_KEY,'null'));}catch(e){daily=null;}
+const tk=todayKey();
+if(!daily||daily.date!==tk){
+const keep=(daily&&daily.lastClaim===dayKey(1))?daily.streak:0;
+daily={date:tk,quests:genQuests(tk),streak:keep||0,lastClaim:daily?daily.lastClaim:'',chestClaimed:false};
+store.set(DAILY_KEY,JSON.stringify(daily));
+}
+paintDailyBadge();
+}
+function dailyAdd(id,n){
+if(!daily||devCheat)return;
+let ch=false;
+for(const q of daily.quests){
+if(q.id===id&&!q.claim){
+if(id==='combo'){if(n>q.done){q.done=n;ch=true;}}
+else if(q.done<q.need){q.done=Math.min(q.need,q.done+n);ch=true;}
+}
+}
+if(ch){store.set(DAILY_KEY,JSON.stringify(daily));paintDailyBadge();
+if(!$('#dailyOv').classList.contains('hidden'))renderDaily();}
+}
+function paintDailyBadge(){
+const b=$('#btnDaily');if(!b||!daily)return;
+const n=daily.quests.filter(q=>!q.claim&&q.done>=q.need).length+(daily.chestClaimed?0:1);
+b.textContent=n>0?'🗓 Задания дня · забрать '+n:'🗓 Задания дня';
+}
+function claimDailyChest(){
+const tk=todayKey();
+daily.streak=(daily.lastClaim===dayKey(1))?(daily.streak||0)+1:1;
+daily.lastClaim=tk;daily.chestClaimed=true;
+const type=daily.streak>=7?'gold':(daily.streak>=3?'silver':'bronze');
+if(window.InvAPI)InvAPI.addChest(type);
+store.set(DAILY_KEY,JSON.stringify(daily));
+showToast('🎁 '+type+'-сундук! Серия '+daily.streak+' дн.');
+if(Snd.on){Snd.init();Snd.spawn();}
+renderDaily();paintDailyBadge();
+}
+function renderDaily(){
+if(!daily)return;
+$('#dailyStreak').innerHTML='🔥 Серия входов: <b style="color:#ffd66b;font-family:Unbounded">'+(daily.streak||0)+' дн.</b>';
+const row=$('#dailyChestRow');
+if(daily.chestClaimed)row.innerHTML='<span>🎁 Ежедневный сундук</span><b style="color:#7fa5bd">получен сегодня</b>';
+else{row.innerHTML='<span>🎁 Ежедневный сундук</span><button class="btn" id="dailyChestBtn" style="padding:10px 16px">Забрать</button>';
+$('#dailyChestBtn').onclick=claimDailyChest;}
+const box=$('#dailyList');box.innerHTML='';
+daily.quests.forEach(q=>{
+const t=QUEST_POOL.find(x=>x.id===q.id);
+const done=q.done>=q.need;
+const div=document.createElement('div');div.className='setrow';
+div.innerHTML='<span style="flex:1;text-align:left;line-height:1.35">'+t.ico+' '+t.txt(q.need)+
+'<br><small style="color:#7fa5bd;font-size:11px">'+Math.min(q.done,q.need)+' / '+q.need+' · награда '+fmt(q.rw)+' 💰</small></span>';
+const b=document.createElement('button');
+if(q.claim){b.className='btn ghost';b.textContent='✓';b.style.opacity=.5;b.disabled=true;}
+else if(done){b.className='btn';b.textContent='Забрать';
+b.onclick=()=>{q.claim=true;if(window.InvAPI)InvAPI.addCoins(q.rw);
+store.set(DAILY_KEY,JSON.stringify(daily));
+if(Snd.on){Snd.init();Snd.coins();}
+renderDaily();paintDailyBadge();};}
+else{b.className='btn ghost';b.textContent=Math.min(q.done,q.need)+'/'+q.need;b.style.opacity=.6;b.disabled=true;}
+div.appendChild(b);box.appendChild(div);
+});
+}
+$('#btnDaily').addEventListener('click',()=>{Snd.init();dailyLoad();renderDaily();$('#dailyOv').classList.remove('hidden');});
+$('#btnDailyClose').addEventListener('click',()=>$('#dailyOv').classList.add('hidden'));
 document.addEventListener('pointerdown',e=>{
 const b=e.target.closest?e.target.closest('.btn'):null;
 if(!b)return;
@@ -2809,10 +2909,11 @@ maybeNick();
 document.addEventListener('visibilitychange',()=>{
     if(document.hidden){
         saveGame();
-    } else {
-        // Вернулись на вкладку — будим звук
-        if(window.Snd) Snd.init();
-    }
+   } else {
+// Вернулись на вкладку — будим звук и обновляем день
+if(window.Snd) Snd.init();
+dailyLoad();
+}
 });
 window.addEventListener('beforeunload',()=>saveGame());
 window.addEventListener('pagehide',()=>{
@@ -3088,7 +3189,7 @@ buildSprites();buildPrism();buildMega();buildRocks();buildCols();
 ICE=zeroMat();ROCK=zeroMat();COL=zeroMat();FIRE={};POISON={};POISON_AGE={};goal=makeGoal(1);
 fitCanvas();genBoard();goal=makeGoal(1);introFall();
 paintGolem();
-paintSound();paintTutorial();applyModeUI();applyTheme();updateHUD();updateBoosterUI();updateBossUI();refreshStartUI();
+paintSound();paintTutorial();applyModeUI();applyTheme();updateHUD();updateBoosterUI();updateBossUI();refreshStartUI();dailyLoad();
 lbFlush();
 requestAnimationFrame(frame);
 </script>
@@ -3159,6 +3260,7 @@ if(typeof Snd !== 'undefined'){ Snd.init(); }
                 invCoins += coins;
                 saveInv();
                 updateBadge();
+              if(typeof dailyAdd==='function')dailyAdd('chest',1);
                 showReward(chest.type,coins);
               render(); 
             }
@@ -3258,7 +3360,8 @@ if(typeof Snd !== 'undefined' && Snd.on && coins > 0){ Snd.init(); Snd.coins(); 
 
   var ov=document.createElement('div');ov.className='overlay';var icon=type==='gold'?'🏆':type==='silver'?'🥈':'🥉';if(coins===0){ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">Сундук получен!</h3><p style="color:#bfe6ff;font-size:16px">Открой его в инвентаре</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">OK</button></div>';}else{ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">Сундук открыт!</h3><p style="color:#ffd66b;font-size:18px">💰 +'+coins+' монет</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">Забрать</button></div>';}document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);document.getElementById('btnX').onclick=function(){ov.remove();};}
 function applySkin(skinId){var skins={classic:{frameA:'#143249',frameB:'#0b1d2c'},emerald:{frameA:'#1a4a3a',frameB:'#0d2c22'},ruby:{frameA:'#4a1a2a',frameB:'#2c0d1a'},amethyst:{frameA:'#3a1a4a',frameB:'#1f0d2c'}};var s=skins[skinId];if(!s)return;document.body.style.setProperty('--frameA',s.frameA);document.body.style.setProperty('--frameB',s.frameB);invStore.set('sv-active-skin',skinId);}
-window._onLevelComplete=function(completedLevel){if(completedLevel<1)return;var roll=Math.random();var type=null;if(roll<0.05)type='gold';else if(roll<0.15)type='silver';else if(roll<0.40)type='bronze';if(!type)return;invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();setTimeout(function(){showReward(type,0);},1500);};
+window.InvAPI={addCoins:function(n){invCoins+=n;saveInv();},addChest:function(type){invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();}};
+  window._onLevelComplete=function(completedLevel){if(completedLevel<1)return;var roll=Math.random();var type=null;if(roll<0.05)type='gold';else if(roll<0.15)type='silver';else if(roll<0.40)type='bronze';if(!type)return;invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();setTimeout(function(){showReward(type,0);},1500);};
 // скин при старте не применяем: его инлайн-цвета перекрывали темы
 
 setTimeout(function(){var t=document.getElementById('btnInvMenu');var g=document.getElementById('btnInvGame');if(t)t.onclick=showInv;if(g){g.onclick=showInv;updateBadge();}},1000);
