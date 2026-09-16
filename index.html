@@ -440,6 +440,7 @@ body.lowperf .chip.zen{animation:none}
 <li>◆ <b>3+ одинаковых</b> в ряд рассыпаются, каскады дают ×2, ×3…</li>
 <li>◆ <b>4</b> — молния, <b>5</b> — призма, <b>6+</b> — мега-бомба, <b>уголок</b> — бомба</li>
 <li>◆ <b>Две молнии</b> в одном комбо: одинаковые — тройная полоса, разные — крест 3×3</li>
+<li>◆ Спецкамень, взорванный <b>взрывом другого</b>, срабатывает усиленно: молния — двойная полоса, бомба — 5×5, призма — два цвета</li>
 <li>◆ <b>Две призмы</b> в одном комбо — СУПЕРНОВА: очищает всё поле</li>
 <li>◆ Уровень не проходится, пока не очищены <b>все льдины и валуны</b></li>
 <li>◆ <b>⛏ Молот</b> за 20 000 очков, <b>⏳ Часики</b> за 45 000, <b>🔄 Обмен</b> за 30 000, <b>↩️ Отмена</b> за 35 000</li>
@@ -1588,35 +1589,59 @@ function allSettled(){for(const row of grid)for(const g of row)if(g&&g.falling)r
 function waitFall(id){return new Promise(res=>{fallRes={res,id}})}
 function expandWithSpecials(set,direct){
 let triggered=0;const processed=new Set(),q=[...set];
+const chained=new Set();
 while(q.length){
 const k=q.pop();if(processed.has(k))continue;processed.add(k);
 const[r,c]=k.split(',').map(Number);const g=grid[r]&&grid[r][c];
 if(!g||!g.special)continue;
 triggered++;
+const up=chained.has(k);
 const add=(rr,cc)=>{if(rr<0||cc<0||rr>=ROWS||cc>=COLS)return;
 const kk=key(rr,cc);
 if(COL[rr][cc]>0)return;
 if(ROCK[rr][cc]>0||ICE[rr][cc]>0){direct.add(kk);return;}
 if(!set.has(kk)){
-  set.add(kk);
-  q.push(kk);
-  const gg=grid[rr]&&grid[rr][cc];
-  if(gg&&gg.special){
-    const p=cellXY(rr,cc);
-    if(gg.special==='line-h'){fxBeams.push({r:rr,c:cc,dir:'h',t:0});}
-    else if(gg.special==='line-v'){fxBeams.push({r:rr,c:cc,dir:'v',t:0});}
-    else{fxRings.push({x:p.x,y:p.y,t:0});}
-  }
+set.add(kk);
+q.push(kk);
+const gg=grid[rr]&&grid[rr][cc];
+if(gg&&gg.special){
+chained.add(kk);
+const p=cellXY(rr,cc);
+if(gg.special==='line-h'){fxBeams.push({r:rr,c:cc,dir:'h',t:0});}
+else if(gg.special==='line-v'){fxBeams.push({r:rr,c:cc,dir:'v',t:0});}
+else{fxRings.push({x:p.x,y:p.y,t:0});}
+}
 }};
-if(g.special==='line-h'){fxBeams.push({r,c,dir:'h',t:0});
-  for(let i=0;i<COLS;i++){if(COL[r][i]>0)break;add(r,i);}}
-else if(g.special==='line-v'){fxBeams.push({r,c,dir:'v',t:0});
-  for(let i=0;i<ROWS;i++){if(COL[i][c]>0)break;add(i,c);}}
+const lineBeam=(rr,cc,dir)=>{fxBeams.push({r:rr,c:cc,dir,t:0});
+if(dir==='h'){for(let i=0;i<COLS;i++){if(COL[rr][i]>0)break;add(rr,i);}}
+else{for(let i=0;i<ROWS;i++){if(COL[i][cc]>0)break;add(i,cc);}}};
+if(g.special==='line-h'){
+lineBeam(r,c,'h');
+if(up){
+let best=-1,br=-1;
+for(const rr of[r-1,r+1]){if(rr<0||rr>=ROWS)continue;
+let n=0;for(let cc=0;cc<COLS;cc++){if(COL[rr][cc]>0)continue;if(!set.has(key(rr,cc))&&grid[rr][cc])n++;}
+if(n>best){best=n;br=rr;}}
+if(br>=0&&best>0){lineBeam(br,c,'h');
+const p=cellXY(r,c);popup(p.x,p.y,'⚡ ДВОЙНАЯ ПОЛОСА!',true,'#ffe89a');}}
+}
+else if(g.special==='line-v'){
+lineBeam(r,c,'v');
+if(up){
+let best=-1,bc=-1;
+for(const cc of[c-1,c+1]){if(cc<0||cc>=COLS)continue;
+let n=0;for(let rr=0;rr<ROWS;rr++){if(COL[rr][cc]>0)continue;if(!set.has(key(rr,cc))&&grid[rr][cc])n++;}
+if(n>best){best=n;bc=cc;}}
+if(bc>=0&&best>0){lineBeam(r,bc,'v');
+const p=cellXY(r,c);popup(p.x,p.y,'⚡ ДВОЙНАЯ ПОЛОСА!',true,'#ffe89a');}}
+}
 else if(g.special==='bomb'){const p=cellXY(r,c);fxRings.push({x:p.x,y:p.y,t:0});
-for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)add(r+dr,c+dc);}
+const rad=up?2:1;
+for(let dr=-rad;dr<=rad;dr++)for(let dc=-rad;dc<=rad;dc++)add(r+dr,c+dc);}
 else if(g.special==='mega'){const p=cellXY(r,c);fxRings.push({x:p.x,y:p.y,t:0,mega:true});
 for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)add(r+dr,c+dc);
-for(let i=0;i<2;i++){const cr=irnd(ROWS),cc=irnd(COLS);
+const extra=up?4:2;
+for(let i=0;i<extra;i++){const cr=irnd(ROWS),cc=irnd(COLS);
 const q2=cellXY(cr,cc);fxRings.push({x:q2.x,y:q2.y,t:0,mega:true});
 for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)add(cr+dr,cc+dc);}}
 else if(g.special==='prism'){const cnt={};
@@ -1625,7 +1650,11 @@ if(gg&&ICE[rr][cc]===0&&COL[rr][cc]===0)cnt[gg.t]=(cnt[gg.t]||0)+1;}
 let bt=0;for(const t in cnt)if(cnt[t]>cnt[bt])bt=+t;
 const p=cellXY(r,c);fxRings.push({x:p.x,y:p.y,t:0});
 for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++)
-if(grid[rr][cc]&&grid[rr][cc].t===bt)add(rr,cc);}}
+if(grid[rr][cc]&&grid[rr][cc].t===bt)add(rr,cc);
+if(up){let bt2=-1;for(const t in cnt)if(+t!==bt&&(bt2<0||cnt[t]>cnt[bt2]))bt2=+t;
+if(bt2>=0)for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++)
+if(grid[rr][cc]&&grid[rr][cc].t===bt2)add(rr,cc);}}
+}
 return triggered;}
 function countColorGoal(set){
     if(!goal||goal.type!=='color2')return;
