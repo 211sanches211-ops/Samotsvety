@@ -313,6 +313,13 @@ min-height:100dvh;padding:30px}
 #devOv .menurow{gap:6px}
 #devOv .menurow .btn{padding:11px 6px;font-size:13px;min-width:0}
 #devOv .btn.wide{padding:13px 12px;font-size:14px}
+#menuRowInv .btn.wide{font-size:14px;padding:12px 8px;min-width:0}
+#menuRowInv .btn.icon{width:50px;font-size:18px}
+body.lowperf #dust{display:none}
+body.lowperf .board-frame{animation:none}
+body.lowperf #barFill::after{animation:none}
+body.lowperf .overlay,body.lowperf .plate{backdrop-filter:none;-webkit-backdrop-filter:none}
+body.lowperf .chip.zen{animation:none}
 </style>
 </head>
 <body>
@@ -396,8 +403,11 @@ min-height:100dvh;padding:30px}
 </div>
 <button class="btn ghost wide" id="btnContinue" hidden>▶&nbsp; Продолжить — <span id="contInfo"></span></button>
 <button class="btn rating wide" id="btnLb" style="margin-top:10px">🏆 Рейтинг</button>
-<button class="btn ghost wide" id="btnInvMenu" style="margin-top:10px">📦 Инвентарь</button>
-<button class="btn ghost wide" id="btnDaily" style="margin-top:10px">🗓 Задания дня</button>
+<div class="menurow" id="menuRowInv" style="margin-top:10px">
+<button class="btn ghost wide" id="btnInvMenu">📦 Инвентарь</button>
+<button class="btn ghost wide" id="btnDaily">🗓 Задания</button>
+<button class="btn ghost icon" id="btnStats" title="Статистика игрока">📊</button>
+</div>
 <div class="menurow">
 <button class="btn ghost wide" id="btnHow">❓ Как играть</button>
 <button class="btn ghost wide" id="btnSettings">⚙️ Настройки</button>
@@ -440,6 +450,7 @@ min-height:100dvh;padding:30px}
 <div class="setrow"><span>Звук</span><button class="btn ghost icon" id="btnSoundSet">🔊</button></div>
 <div class="setrow" id="installRow" hidden><span>Приложение</span><button class="btn ghost" id="btnInstall">⤓ Установить</button></div>
 <div class="setrow"><span>🎨 Тема</span><button class="btn ghost" id="btnThemeSet">Классическая</button></div>
+<div class="setrow"><span>⚡ Слабое устройство</span><button class="btn ghost" id="btnPerfSet">Выключено</button></div>
 <div class="setrow"><span>📖 Обучение</span><button class="btn ghost" id="btnTutorialSet">Включено</button></div>
 <div class="setrow" id="devCodeRow" hidden style="display:none"><span>🔑 Ключ</span><input id="devCodeInput" maxlength="20" placeholder="—" autocomplete="off"></div>
 <div class="ovbtns"><button class="btn big" id="btnSetClose">Готово</button></div>
@@ -496,6 +507,13 @@ min-height:100dvh;padding:30px}
 <div class="setrow" id="dailyChestRow"></div>
 <div id="dailyList"></div>
 <div class="ovbtns"><button class="btn big" id="btnDailyClose">Закрыть</button></div>
+</div>
+</div>
+<div class="overlay hidden" id="statsOv">
+<div class="card">
+<h2 class="card-title" style="font-size:clamp(20px,5vw,28px)">📊 Статистика</h2>
+<div id="statsList"></div>
+<div class="ovbtns"><button class="btn big" id="btnStatsClose">Закрыть</button></div>
 </div>
 </div>
 <div class="overlay hidden" id="devOv">
@@ -1210,6 +1228,7 @@ goal.done=Math.min(goal.need,goal.done+n);
 updateBossUI();
 const ic=$('#golemIco');ic.classList.remove('gshake');void ic.offsetWidth;ic.classList.add('gshake');
 if(goal.done>=goal.need&&!goal.counted){goal.counted=true;
+if(!devCheat)statAdd('boss',1);                                        
 const bonus=addScore(2000+level*100);
 showToast('💥 Голем повержен! +'+fmt(bonus));
 Snd.mega();Snd.levelup();confetti();shake(14);buzz([40,60,40]);}}
@@ -1526,7 +1545,7 @@ t:0,ttl:rnd(.4,.8),col,sz:rnd(.06,.13)*cell,spark:i<3});}
 for(let i=0;i<4;i++){const a=rnd(Math.PI*2),sp=rnd(3,6)*cell;
 particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,gr:cell*4,
 t:0,ttl:rnd(.3,.55),col:'#ffffff',sz:rnd(.03,.06)*cell,spark:true});}}
-function confetti(){for(let i=0;i<70;i++)
+function confetti(){if(lowPerf)return;for(let i=0;i<70;i++)
 particles.push({x:rnd(boardPx),y:rnd(-boardPx*.3,0),vx:rnd(-cell,cell),vy:rnd(0,cell*3),
 gr:cell*7,t:0,ttl:rnd(1.2,2.1),col:COLORS[irnd(TYPES)].main,sz:rnd(.08,.16)*cell,spark:false});}
 function popup(x,y,txt,big=false,col){popups.push({x,y,txt,t:0,ttl:.95,big,col:col||(rushOn()?'#ffe89a':'#ffd66b')})}
@@ -2108,6 +2127,7 @@ e.classList.toggle('n8',len>=8);}
 function gameOver(){
   if(over)return;
   over=true;busy=true;clearSave();
+  if(!devCheat){statAdd('runs',1);STATS.maxCombo=Math.max(STATS.maxCombo||0,maxCombo);statSave();}
   if(rushT>0)endRush();
   const rec=saveBest();
   if(devCheat){
@@ -2825,7 +2845,7 @@ if(!$('#dailyOv').classList.contains('hidden'))renderDaily();}
 function paintDailyBadge(){
 const b=$('#btnDaily');if(!b||!daily)return;
 const n=daily.quests.filter(q=>!q.claim&&q.done>=q.need).length+(daily.chestClaimed?0:1);
-b.textContent=n>0?'🗓 Задания дня · забрать '+n:'🗓 Задания дня';
+b.textContent=n>0?'🗓 Задания · '+n:'🗓 Задания';
 }
 function claimDailyChest(){
 const tk=todayKey();
@@ -2856,6 +2876,7 @@ const b=document.createElement('button');
 if(q.claim){b.className='btn ghost';b.textContent='✓';b.style.opacity=.5;b.disabled=true;}
 else if(done){b.className='btn';b.textContent='Забрать';
 b.onclick=()=>{q.claim=true;if(window.InvAPI)InvAPI.addCoins(q.rw);
+statAdd('coins',q.rw);
 store.set(DAILY_KEY,JSON.stringify(daily));
 if(Snd.on){Snd.init();Snd.coins();}
 renderDaily();paintDailyBadge();};}
@@ -2865,7 +2886,34 @@ div.appendChild(b);box.appendChild(div);
 }
 $('#btnDaily').addEventListener('click',()=>{Snd.init();dailyLoad();renderDaily();$('#dailyOv').classList.remove('hidden');});
 $('#btnDailyClose').addEventListener('click',()=>$('#dailyOv').classList.add('hidden'));
-document.addEventListener('pointerdown',e=>{
+  // ===== СТАТИСТИКА ИГРОКА =====
+const STATS_KEY='sv-stats-v1';
+let STATS=(()=>{try{return JSON.parse(store.get(STATS_KEY,'null'))||{runs:0,maxCombo:0,chests:0,coins:0,boss:0};}catch(e){return{runs:0,maxCombo:0,chests:0,coins:0,boss:0};}})();
+function statSave(){store.set(STATS_KEY,JSON.stringify(STATS));}
+function statAdd(k,n){STATS[k]=(STATS[k]||0)+(n===undefined?1:n);statSave();}
+function renderStats(){
+const rows=[
+['🏃 Забегов сыграно',fmt(STATS.runs||0)],
+['🔥 Макс. комбо','×'+Math.max(1,STATS.maxCombo||0)],
+['📦 Сундуков открыто',fmt(STATS.chests||0)],
+['💰 Монет заработано',fmt(STATS.coins||0)],
+['🗿 Големов повержено',fmt(STATS.boss||0)],
+];
+$('#statsList').innerHTML=rows.map(r=>'<div class="setrow"><span style="flex:1;text-align:left">'+r[0]+'</span><b style="color:#ffd66b;font-family:Unbounded,sans-serif;font-size:14px">'+r[1]+'</b></div>').join('');
+}
+$('#btnStats').addEventListener('click',()=>{Snd.init();Snd.tick();renderStats();$('#statsOv').classList.remove('hidden');});
+$('#btnStatsClose').addEventListener('click',()=>$('#statsOv').classList.add('hidden'));
+// ===== РЕЖИМ СЛАБОГО УСТРОЙСТВА =====
+let lowPerf=store.get('sv-lowperf','0')==='1';
+function applyPerf(){
+document.body.classList.toggle('lowperf',lowPerf);
+const b=$('#btnPerfSet');if(b)b.textContent=lowPerf?'Включено':'Выключено';
+if(lowPerf){particles.length=0;glints.length=0;}
+}
+function togglePerf(){lowPerf=!lowPerf;store.set('sv-lowperf',lowPerf?'1':'0');applyPerf();
+if(Snd.on){Snd.init();Snd.tick();}}
+$('#btnPerfSet').addEventListener('click',togglePerf);
+  document.addEventListener('pointerdown',e=>{
 const b=e.target.closest?e.target.closest('.btn'):null;
 if(!b)return;
 b.classList.add('pressed');
@@ -3108,7 +3156,7 @@ if(dvL)dvL.addEventListener('click',()=>{
 const dvR=document.getElementById('devReset');
 if(dvR)dvR.addEventListener('click',()=>{
   if(!confirm('Сбросить весь прогресс и localStorage?'))return;
-  ['sv-save-v13','sv-best-classic','sv-best-time','sv-best-zen','sv-lb','sv-lbq','sv-nick-done','sv-seen-cols','sv-seen-fire','sv-seen-poison','sv-seen-cham','sv-chests','sv-coins','sv-active-skin'].forEach(k=>store.del(k));
+ ['sv-save-v13','sv-best-classic','sv-best-time','sv-best-zen','sv-lb','sv-lbq','sv-nick-done','sv-seen-cols','sv-seen-fire','sv-seen-poison','sv-seen-cham','sv-chests','sv-coins','sv-active-skin','sv-stats-v1','sv-daily-v1','sv-lowperf','sv-theme'].forEach(k=>store.del(k));
   location.reload();
 });
 (function dust(){
@@ -3166,11 +3214,11 @@ if(timeLeft<=0){timeLeft=0;gameOver();}}
 if(rushT>0&&started&&!over){rushT-=dt;
 rushPartT-=dt;
 if(rushPartT<=0){rushPartT=.16;
-particles.push({x:rnd(boardPx),y:-cell*.2,vx:rnd(-cell*.25,cell*.25),vy:rnd(cell*.7,cell*1.5),
+if(!lowPerf)particles.push({x:rnd(boardPx),y:-cell*.2,vx:rnd(-cell*.25,cell*.25),vy:rnd(cell*.7,cell*1.5),
 gr:0,t:0,ttl:rnd(1.4,2.4),col:Math.random()<.6?'#ffd66b':'#fff3c4',sz:rnd(.03,.07)*cell,spark:true});}
 if(rushT<=0)endRush();}
 glintT-=dt;
-if(glintT<=0&&started&&!over){glintT=rnd(.45,1.3);
+if(glintT<=0&&started&&!over&&!lowPerf){glintT=rnd(.45,1.3);
 const g=grid[irnd(ROWS)]?.[irnd(COLS)];
 if(g&&!g.falling&&g.pop<0&&ICE[g.r][g.c]===0&&COL[g.r][g.c]===0)
 glints.push({x:g.x,y:g.y-cell*.12,t:0,ttl:.55,s:cell*rnd(.4,.75),rot:rnd(Math.PI)});}
@@ -3178,6 +3226,7 @@ for(let i=glints.length-1;i>=0;i--){glints[i].t+=dt;if(glints[i].t>glints[i].ttl
 for(let i=particles.length-1;i>=0;i--){const p=particles[i];
 p.vy+=p.gr*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.t+=dt;
 if(p.t>p.ttl)particles.splice(i,1);}
+if(lowPerf&&particles.length>50)particles.splice(0,particles.length-50);
 for(let i=popups.length-1;i>=0;i--){popups[i].t+=dt;if(popups[i].t>popups[i].ttl)popups.splice(i,1);}
 for(let i=fxBeams.length-1;i>=0;i--){fxBeams[i].t+=dt;if(fxBeams[i].t>.32)fxBeams.splice(i,1);}
 for(let i=fxRings.length-1;i>=0;i--){fxRings[i].t+=dt;if(fxRings[i].t>.42)fxRings.splice(i,1);}
@@ -3189,7 +3238,7 @@ buildSprites();buildPrism();buildMega();buildRocks();buildCols();
 ICE=zeroMat();ROCK=zeroMat();COL=zeroMat();FIRE={};POISON={};POISON_AGE={};goal=makeGoal(1);
 fitCanvas();genBoard();goal=makeGoal(1);introFall();
 paintGolem();
-paintSound();paintTutorial();applyModeUI();applyTheme();updateHUD();updateBoosterUI();updateBossUI();refreshStartUI();dailyLoad();
+paintSound();paintTutorial();applyModeUI();applyTheme();updateHUD();updateBoosterUI();updateBossUI();refreshStartUI();dailyLoad();applyPerf();
 lbFlush();
 requestAnimationFrame(frame);
 </script>
@@ -3260,6 +3309,7 @@ if(typeof Snd !== 'undefined'){ Snd.init(); }
                 invCoins += coins;
                 saveInv();
                 updateBadge();
+              if(typeof statAdd==='function'){statAdd('chests',1);statAdd('coins',coins);}
               if(typeof dailyAdd==='function')dailyAdd('chest',1);
                 showReward(chest.type,coins);
               render(); 
