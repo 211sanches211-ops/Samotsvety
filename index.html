@@ -2232,7 +2232,7 @@ function gameOver(){
   $('#ovTitle').textContent=title;
   $('#ovScore').textContent=fmt(score);fitNum($('#ovScore'));
   $('#ovLblMid').textContent=mode==='time'?'Макс. комбо':(mode==='zen'?'Комбо':(mode==='surv'?'Волна':'Уровень'));
-$('#ovMid').textContent=(mode==='zen'||mode==='time')?'×'+Math.max(1,maxCombo):(mode==='surv'?wave:level);Combo):level);
+$('#ovMid').textContent=(mode==='zen'||mode==='time')?'×'+Math.max(1,maxCombo):(mode==='surv'?wave:level);
   $('#ovBest').textContent=fmt(getBest(mode));fitNum($('#ovBest'));
   $('#recBadge').classList.toggle('on',rec&&score>0&&!devCheat);
   $('#overOv').classList.remove('hidden');
