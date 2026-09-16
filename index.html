@@ -3417,10 +3417,17 @@ window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').ca
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{
 e.preventDefault();deferredPrompt=e;$('#installRow').hidden=false;});
+const isStandalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+if(!isStandalone)$('#installRow').hidden=false;
 $('#btnInstall').addEventListener('click',async()=>{
-if(!deferredPrompt)return;deferredPrompt.prompt();
-try{await deferredPrompt.userChoice}catch(e){}
-deferredPrompt=null;$('#installRow').hidden=true;});
+if(deferredPrompt){
+deferredPrompt.prompt();
+try{const choice=await deferredPrompt.userChoice;if(choice&&choice.outcome==='accepted')$('#installRow').hidden=true;}catch(e){}
+deferredPrompt=null;
+return;}
+const iOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+showToast(iOS?'📲 Поделиться (квадрат со стрелкой вверх) → «На экран «Домой»»':'📲 Меню браузера (⋮) → «Установить» / «Добавить на главный экран»');});
+
 let last=performance.now();
 function frame(now){
 const dt=Math.min(.05,(now-last)/1000);last=now;
