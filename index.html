@@ -528,6 +528,13 @@ body.lowperf .chip.zen{animation:none}
 <div class="ovbtns"><button class="btn big" id="btnStatsClose">Закрыть</button></div>
 </div>
 </div>
+  <div class="overlay hidden" id="newsOv">
+<div class="card">
+<h2 class="card-title" style="font-size:clamp(20px,5vw,28px)">✨ Что нового</h2>
+<div id="newsList" style="display:flex;flex-direction:column;gap:8px;margin:10px 0 4px;text-align:left"></div>
+<div class="ovbtns"><button class="btn big" id="btnNewsClose">Отлично!</button></div>
+</div>
+</div>
 <div class="overlay hidden" id="devOv">
 <div class="card">
 <h2 class="card-title" style="font-size:clamp(20px,5vw,28px)">📊 Диагностика</h2>
@@ -2475,7 +2482,7 @@ spx.save();spx.translate(W/2,W/2);spx.rotate(rot*0.35);spx.scale(sx,1);
 spx.drawImage(SPR[gi],-s/2,-s/2,s,s);spx.restore();
 if(flash>0)drawStar(spx,W/2,W/2-s*0.36,10+20*flash,0,flash);}
 setTimeout(()=>{const so=$('#splashOv');so.classList.add('fade');
-setTimeout(()=>{so.classList.add('hidden');splashOn=false;maybeNick();},450);},2400);
+setTimeout(()=>{so.classList.add('hidden');splashOn=false;maybeNick();maybeShowNews();},450);},2400);
 function drawMenuGems(t){const W=300,H=64;mgx.clearRect(0,0,W,H);
 const n=6,step=W/n,s=Math.min(step*.82,H*.8);
 for(let i=0;i<n;i++){const x=step*(i+.5),y=H/2+Math.sin(t*2+i*.9)*3;
@@ -3018,6 +3025,40 @@ $('#statsList').innerHTML=rows.map(r=>'<div class="setrow"><span style="flex:1;t
 }
 $('#btnStats').addEventListener('click',()=>{Snd.init();Snd.tick();renderStats();$('#statsOv').classList.remove('hidden');});
 $('#btnStatsClose').addEventListener('click',()=>$('#statsOv').classList.add('hidden'));
+  // ===== ЧТО НОВОГО =====
+const NEWS=[
+{id:'surv',ico:'⛏',t:'Режим «Выживание»',d:'Волны угроз каждые 5 ходов. Держись как можно дольше!'},
+{id:'daily',ico:'🗓',t:'Задания дня',d:'Три квеста и бесплатный сундук каждый день, серия входов — до золотого.'},
+{id:'stats',ico:'📊',t:'Статистика',d:'Забегов, макс. комбо, сундуки и монеты — кнопка 📊 в меню.'},
+{id:'shop',ico:'🛒',t:'Магазин бустеров',d:'Инвентарь → «Магазин»: трать монеты на молоты, часики и обмен.'},
+{id:'themes',ico:'🎨',t:'Темы штрека',d:'Пять тем: авто по уровням или вручную в настройках.'},
+{id:'lowperf',ico:'⚡',t:'Режим слабого устройства',d:'Меньше частиц и blur для старых телефонов: Настройки → «Слабое устройство».'},
+];
+function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
+function newsMarkSeen(ids){const s=new Set(newsSeen());ids.forEach(i=>s.add(i));store.set('sv-news-seen',JSON.stringify([...s]));}
+function newsBaseline(){
+if(store.get('sv-news-init','')==='1')return;
+store.set('sv-news-init','1');
+const returning=store.get('sv-nick-done','')==='1'||store.get('sv-pid','')!=='';
+if(!returning)newsMarkSeen(NEWS.map(n=>n.id));
+}
+newsBaseline();
+function maybeShowNews(){
+if(!$('#nickOv').classList.contains('hidden'))return;
+if(!$('#newsOv').classList.contains('hidden'))return;
+const seen=newsSeen();
+const fresh=NEWS.filter(n=>!seen.includes(n.id));
+if(!fresh.length)return;
+$('#newsList').innerHTML=fresh.map(n=>
+'<div class="setrow" style="margin-bottom:0"><span style="flex:1;text-align:left;line-height:1.35">'+
+n.ico+' <b style="color:#ffd66b">'+n.t+'</b><br><small style="color:#7fa5bd;font-size:11px">'+n.d+'</small></span></div>').join('');
+$('#newsOv').classList.remove('hidden');
+$('#btnNewsClose').onclick=()=>{
+newsMarkSeen(fresh.map(n=>n.id));
+$('#newsOv').classList.add('hidden');
+if(Snd.on){Snd.init();Snd.tick();}
+};
+}
 // ===== РЕЖИМ СЛАБОГО УСТРОЙСТВА =====
 let lowPerf=store.get('sv-lowperf','0')==='1';
 function applyPerf(){
@@ -3065,6 +3106,7 @@ ni.value=v;
 store.set('sv-nick-done','1');
 $('#nickOv').classList.add('hidden');
 Snd.init();Snd.tick();
+  maybeShowNews();
 }
 $('#btnNickSave').addEventListener('click',saveNick);
 $('#nickInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveNick();});
@@ -3271,7 +3313,7 @@ if(dvL)dvL.addEventListener('click',()=>{
 const dvR=document.getElementById('devReset');
 if(dvR)dvR.addEventListener('click',()=>{
   if(!confirm('Сбросить весь прогресс и localStorage?'))return;
- ['sv-save-v13','sv-best-classic','sv-best-time','sv-best-zen','sv-lb','sv-lbq','sv-nick-done','sv-seen-cols','sv-seen-fire','sv-seen-poison','sv-seen-cham','sv-chests','sv-coins','sv-active-skin','sv-stats-v1','sv-daily-v1','sv-lowperf','sv-theme'].forEach(k=>store.del(k));
+ ['sv-save-v13','sv-best-classic','sv-best-time','sv-best-zen','sv-lb','sv-lbq','sv-nick-done','sv-seen-cols','sv-seen-fire','sv-seen-poison','sv-seen-cham','sv-chests','sv-coins','sv-active-skin','sv-stats-v1','sv-daily-v1','sv-lowperf','sv-theme','sv-news-seen','sv-news-init'].forEach(k=>store.del(k));
   location.reload();
 });
 (function dust(){
