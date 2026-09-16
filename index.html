@@ -1109,6 +1109,8 @@ busy=true, started=false, over=false, runId=0, maxCombo=1, lastTick=99,
 selected=null, hintPair=null, dragStart=null,
 shakeT=0, shakeMag=0, fallRes=null, plateRes=null;
 let devCheat=false;
+const RESCUE_PRICES=[3000,6000,12000];
+let rescueUsed=0, rescuePending=false;
 const tweens=[], particles=[], popups=[], fxBeams=[], fxRings=[], glints=[];
 let glintT=0;
 let lastMove=null;
@@ -2012,7 +2014,7 @@ showToast('🔥 Цепная реакция!');
 }
 }
 if(mode==='classic'&&goalMet()){await levelUp(id);if(id!==runId||over)return;}
-else if(mode==='classic'&&moves<=0){gameOver();return;}
+else if(mode==='classic'&&moves<=0){defeat();return;}
 if(mode==='classic'&&!over){
 if(goal&&goal.type==='boss'&&goal.done<goal.need){
 movesInLevel++;if(movesInLevel%4===0)golemFreeze();}
@@ -2217,7 +2219,71 @@ function restoreGame(d){
 function fitNum(e){const len=e.textContent.length;
 e.classList.toggle('n6',len>=6&&len<8);
 e.classList.toggle('n8',len>=8);}
-function gameOver(){
+// ===== СПАСЕНИЕ ЗАБЕГА =====
+function invCoinsNow(){return (window.InvAPI&&InvAPI.coins)?InvAPI.coins():0;}
+function rescuePrice(){return RESCUE_PRICES[Math.min(rescueUsed,RESCUE_PRICES.length-1)];}
+function rescueAvailable(){
+if(devCheat||rescuePending||over)return false;
+if(mode!=='classic'&&mode!=='time')return false;
+if(rescueUsed>=RESCUE_PRICES.length)return false;
+return invCoinsNow()>=rescuePrice();}
+function defeat(){
+if(over||rescuePending)return;
+if(!rescueAvailable()){gameOver();return;}
+showRescue();}
+function showRescue(){
+rescuePending=true;busy=true;
+const price=rescuePrice();
+const ov=document.createElement('div');
+ov.className='overlay';ov.id='rescueOv';
+ov.innerHTML='<div class="plate-card" style="max-width:min(88vw,380px)">'+
+'<div class="plate-ico">🛟</div>'+
+'<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(15px,3.6vw,20px);color:#ffd66b;margin-bottom:10px;text-shadow:0 2px 0 #7a4c00,0 4px 10px rgba(0,0,0,.4);">'+(mode==='classic'?'Ходы закончились!':'Время вышло!')+'</h3>'+
+'<p style="font-size:14px;line-height:1.5;color:#cfe6f4;font-weight:700;margin-bottom:6px;text-shadow:0 2px 0 rgba(0,0,0,.45);">Рудник готов поглотить забег… но спасение доступно!</p>'+
+'<p style="font-size:12px;color:#7fa5bd;font-weight:800;margin-bottom:16px">У тебя '+fmt(invCoinsNow())+' 💰 · спасение '+(rescueUsed+1)+' из '+RESCUE_PRICES.length+' — цена '+fmt(price)+' 💰</p>'+
+'<div style="display:flex;flex-direction:column;gap:10px">'+
+'<button id="btnRescueYes" class="btn" style="width:100%">🛟 '+(mode==='classic'?'Продолжить: +5 ходов':'Продолжить: +15 секунд')+' — '+fmt(price)+' 💰</button>'+
+(mode==='classic'?'<button id="btnRescueRetry" class="btn ghost" style="width:100%">↻ Переиграть уровень — '+fmt(price)+' 💰</button>':'')+
+'<button id="btnRescueNo" class="btn ghost" style="width:100%">🏁 Завершить забег</button>'+
+'</div></div>';
+document.body.appendChild(ov);
+setTimeout(()=>{ov.classList.add('on');},10);
+const bye=()=>{ov.classList.remove('on');setTimeout(()=>ov.remove(),300);};
+const pay=()=>{if(window.InvAPI)InvAPI.addCoins(-price);rescueUsed++;};
+ov.querySelector('#btnRescueYes').addEventListener('click',()=>{
+bye();pay();
+if(mode==='classic'){moves+=5;bump(el.moves);}
+else{timeLeft=Math.min(TIME_CAP,timeLeft+15);}
+rescuePending=false;over=false;busy=false;
+showToast('🛟 Спасение! '+(mode==='classic'?'+5 ходов':'+15 секунд'));
+if(Snd.on){Snd.init();Snd.spawn();}
+updateHUD();saveGame();});
+const retry=ov.querySelector('#btnRescueRetry');
+if(retry)retry.addEventListener('click',()=>{bye();pay();rescuePending=false;retryLevel();});
+ov.querySelector('#btnRescueNo').addEventListener('click',()=>{bye();rescuePending=false;gameOver();});
+ov.addEventListener('click',e=>{if(e.target===ov){bye();rescuePending=false;gameOver();}});
+}
+function retryLevel(){
+score=levelStartScore;dispScore=score;lastShown=-1;
+moves=levelGoalKind(level)==='clean'?25:MOVES_PER_LEVEL;
+movesInLevel=0;gateWarned=false;moveCount=0;
+FIRE={};POISON={};POISON_AGE={};
+COL=makeCols(level);
+genBoard();
+placeObstacles(level);
+spawnFire(level);spawnPoison(level);
+goal=makeGoal(level);
+if(goal&&goal.type==='clean'){goal.needIce=sumIceLayers();goal.needRock=rockCount();goal.ready=true;}
+if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
+seedChams();
+over=false;busy=true;
+updateHUD();updateBossUI();applyTheme();
+introFall();
+if(allSettled())busy=false;else fallRes={res:()=>{busy=false}};
+showToast('↻ Уровень '+level+': заново');
+if(Snd.on){Snd.init();Snd.shuffleS();}
+}
+  function gameOver(){
   if(over)return;
   over=true;busy=true;clearSave();
   commitRunStats();
@@ -2251,6 +2317,7 @@ g.y=p.y-boardPx*1.15-(g.c*.45+g.r*.2)*cell-rnd(0,cell);g.falling=true;g.vy=0;}}
 function beginRun(fresh,m,data){
 if(started&&!over)commitRunStats(); // предыдущий забег брошен без проигрыша
 runId++;over=false;started=true;busy=true;selected=null;hintPair=null;dragStart=null;
+  rescueUsed=0;rescuePending=false;
     hammerAim=false;swapFirst=null;hidePlate();
     rushT=0;rushUsed=false;movesInLevel=0;gateWarned=false;moveCount=0;FIRE={};POISON={};POISON_AGE={};specialCount=0;
     devCheat=false;
@@ -3033,6 +3100,7 @@ const NEWS=[
 {id:'shop',ico:'🛒',t:'Магазин бустеров',d:'Инвентарь → «Магазин»: трать монеты на молоты, часики и обмен.'},
 {id:'themes',ico:'🎨',t:'Темы штрека',d:'Пять тем: авто по уровням или вручную в настройках.'},
 {id:'lowperf',ico:'⚡',t:'Режим слабого устройства',d:'Меньше частиц и blur для старых телефонов: Настройки → «Слабое устройство».'},
+{id:'rescue',ico:'🛟',t:'Спасение забега',d:'При поражении — продолжение или переигровка уровня за монеты. До 3 раз за забег.'},
 ];
 function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
 function newsMarkSeen(ids){const s=new Set(newsSeen());ids.forEach(i=>s.add(i));store.set('sv-news-seen',JSON.stringify([...s]));}
@@ -3367,8 +3435,8 @@ if(mode==='time'&&started&&!over){
 timeLeft-=dt;
 const sec=Math.ceil(timeLeft);
 if(sec<=10&&sec!==lastTick&&sec>0){lastTick=sec;Snd.tickLow();buzz(15);}
-if(timeLeft<=0){timeLeft=0;gameOver();}}
-if(rushT>0&&started&&!over){rushT-=dt;
+if(timeLeft<=0){timeLeft=0;defeat();}}
+if(rushT>0&&started&&!over&&!rescuePending){rushT-=dt;
 rushPartT-=dt;
 if(rushPartT<=0){rushPartT=.16;
 if(!lowPerf)particles.push({x:rnd(boardPx),y:-cell*.2,vx:rnd(-cell*.25,cell*.25),vy:rnd(cell*.7,cell*1.5),
@@ -3567,7 +3635,7 @@ if(typeof Snd !== 'undefined' && Snd.on && coins > 0){ Snd.init(); Snd.coins(); 
 
   var ov=document.createElement('div');ov.className='overlay';var icon=type==='gold'?'🏆':type==='silver'?'🥈':'🥉';if(coins===0){ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">'+(CHEST_RU[type]||'')+' сундук получен!</h3><p style="color:#bfe6ff;font-size:16px">Открой его в инвентаре</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">OK</button></div>';}else{ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">'+(CHEST_RU[type]||'')+' сундук открыт!</h3><p style="color:#ffd66b;font-size:18px">💰 +'+coins+' монет</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">Забрать</button></div>';}document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);document.getElementById('btnX').onclick=function(){ov.remove();};}
 function applySkin(skinId){var skins={classic:{frameA:'#143249',frameB:'#0b1d2c'},emerald:{frameA:'#1a4a3a',frameB:'#0d2c22'},ruby:{frameA:'#4a1a2a',frameB:'#2c0d1a'},amethyst:{frameA:'#3a1a4a',frameB:'#1f0d2c'}};var s=skins[skinId];if(!s)return;document.body.style.setProperty('--frameA',s.frameA);document.body.style.setProperty('--frameB',s.frameB);invStore.set('sv-active-skin',skinId);}
-window.InvAPI={addCoins:function(n){invCoins+=n;saveInv();},addChest:function(type){invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();}};
+window.InvAPI={coins:function(){return invCoins;},addCoins:function(n){invCoins+=n;saveInv();},addChest:function(type){invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();}};
   window._onLevelComplete=function(completedLevel){if(completedLevel<1)return;var roll=Math.random();var type=null;if(roll<0.05)type='gold';else if(roll<0.15)type='silver';else if(roll<0.40)type='bronze';if(!type)return;invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();setTimeout(function(){showReward(type,0);},1500);};
 // скин при старте не применяем: его инлайн-цвета перекрывали темы
 
