@@ -320,6 +320,7 @@ body.lowperf .board-frame{animation:none}
 body.lowperf #barFill::after{animation:none}
 body.lowperf .overlay,body.lowperf .plate{backdrop-filter:none;-webkit-backdrop-filter:none}
 body.lowperf .chip.zen{animation:none}
+#btnPerfSet,#btnTutorialSet{min-width:82px;padding:13px 8px;font-size:14px}
 </style>
 </head>
 <body>
@@ -450,8 +451,8 @@ body.lowperf .chip.zen{animation:none}
 <div class="setrow"><span>Звук</span><button class="btn ghost icon" id="btnSoundSet">🔊</button></div>
 <div class="setrow" id="installRow" hidden><span>Приложение</span><button class="btn ghost" id="btnInstall">⤓ Установить</button></div>
 <div class="setrow"><span>🎨 Тема</span><button class="btn ghost" id="btnThemeSet">Классическая</button></div>
-<div class="setrow"><span>⚡ Слабое устройство</span><button class="btn ghost" id="btnPerfSet">Выключено</button></div>
-<div class="setrow"><span>📖 Обучение</span><button class="btn ghost" id="btnTutorialSet">Включено</button></div>
+<div class="setrow"><span>⚡ Слабое устройство</span><button class="btn ghost" id="btnPerfSet" title="Меньше частиц и blur">Выкл</button></div>
+<div class="setrow"><span>📖 Обучение</span><button class="btn ghost" id="btnTutorialSet" title="Обучающие плашки">Вкл</button></div>
 <div class="setrow" id="devCodeRow" hidden style="display:none"><span>🔑 Ключ</span><input id="devCodeInput" maxlength="20" placeholder="—" autocomplete="off"></div>
 <div class="ovbtns"><button class="btn big" id="btnSetClose">Готово</button></div>
 </div>
@@ -2784,8 +2785,8 @@ $('#btnSoundSet').addEventListener('click',toggleSound);
 // ===== ОБУЧЕНИЕ =====
 function tutorialOn(){ return store.get('sv-tutorial','1')==='1'; }
 function paintTutorial(){
-  const b=$('#btnTutorialSet');
-  if(b) b.textContent = tutorialOn() ? 'Включено' : 'Выключено';
+const b=$('#btnTutorialSet');
+if(b) b.textContent = tutorialOn() ? 'Вкл' : 'Выкл';
 }
 function toggleTutorial(){
   const v = tutorialOn() ? '0' : '1';
@@ -2914,7 +2915,7 @@ $('#btnStatsClose').addEventListener('click',()=>$('#statsOv').classList.add('hi
 let lowPerf=store.get('sv-lowperf','0')==='1';
 function applyPerf(){
 document.body.classList.toggle('lowperf',lowPerf);
-const b=$('#btnPerfSet');if(b)b.textContent=lowPerf?'Включено':'Выключено';
+const b=$('#btnPerfSet');if(b)b.textContent=lowPerf?'Вкл':'Выкл';
 if(lowPerf){particles.length=0;glints.length=0;}
 }
 function togglePerf(){lowPerf=!lowPerf;store.set('sv-lowperf',lowPerf?'1':'0');applyPerf();
