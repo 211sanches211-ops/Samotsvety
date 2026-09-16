@@ -580,6 +580,7 @@ const HAM_FIRST=20000, HAM_STEP=20000, FRZ_FIRST=45000, FRZ_STEP=45000, SWAP_FIR
 const UNDO_FIRST=35000, UNDO_STEP=35000;
 const SAVE_KEY='sv-save-v13';
 const THEMES=['Лазурный штрек','Изумрудный грот','Аметистовая пещера','Рубиновый штрек','Золотая галерея'];
+const CHEST_RU={bronze:'Бронзовый',silver:'Серебряный',gold:'Золотой'};
 const COLORS=[
 {main:'#ff4d6d',shape:'hex',name:'Рубин'},
 {main:'#ffc53d',shape:'tri',name:'Топаз'},
@@ -2893,7 +2894,7 @@ daily.lastClaim=tk;daily.chestClaimed=true;
 const type=daily.streak>=7?'gold':(daily.streak>=3?'silver':'bronze');
 if(window.InvAPI)InvAPI.addChest(type);
 store.set(DAILY_KEY,JSON.stringify(daily));
-showToast('🎁 '+type+'-сундук! Серия '+daily.streak+' дн.');
+showToast('🎁 '+(CHEST_RU[type]||type)+' сундук! Серия '+daily.streak+' дн.');
 if(Snd.on){Snd.init();Snd.spawn();}
 renderDaily();paintDailyBadge();
 }
@@ -3331,7 +3332,7 @@ else if(tab === 1){
       var c=invChests[i];
       if(!c.opened){
         var icon=c.type==='gold'?'🏆':c.type==='silver'?'🥈':'🥉';
-        cHtml+='<div class="chest-item" data-idx="'+i+'" style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:#bfe6ff;">'+icon+' '+c.type+' сундук</div>';
+        cHtml+='<div class="chest-item" data-idx="'+i+'" style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:#bfe6ff;">'+icon+' '+(CHEST_RU[c.type]||c.type)+' сундук</div>';
       }
     }
    if(!cHtml)cHtml='<div style="text-align:center;color:#7fa5bd;padding:20px;">Нет закрытых сундуков</div>';
@@ -3453,7 +3454,7 @@ setTimeout(function(){ov.classList.add('on');},10);
 function showReward(type,coins){
 if(typeof Snd !== 'undefined' && Snd.on && coins > 0){ Snd.init(); Snd.coins(); }
 
-  var ov=document.createElement('div');ov.className='overlay';var icon=type==='gold'?'🏆':type==='silver'?'🥈':'🥉';if(coins===0){ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">Сундук получен!</h3><p style="color:#bfe6ff;font-size:16px">Открой его в инвентаре</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">OK</button></div>';}else{ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">Сундук открыт!</h3><p style="color:#ffd66b;font-size:18px">💰 +'+coins+' монет</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">Забрать</button></div>';}document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);document.getElementById('btnX').onclick=function(){ov.remove();};}
+  var ov=document.createElement('div');ov.className='overlay';var icon=type==='gold'?'🏆':type==='silver'?'🥈':'🥉';if(coins===0){ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">'+(CHEST_RU[type]||'')+' сундук получен!</h3><p style="color:#bfe6ff;font-size:16px">Открой его в инвентаре</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">OK</button></div>';}else{ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">'+(CHEST_RU[type]||'')+' сундук открыт!</h3><p style="color:#ffd66b;font-size:18px">💰 +'+coins+' монет</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">Забрать</button></div>';}document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);document.getElementById('btnX').onclick=function(){ov.remove();};}
 function applySkin(skinId){var skins={classic:{frameA:'#143249',frameB:'#0b1d2c'},emerald:{frameA:'#1a4a3a',frameB:'#0d2c22'},ruby:{frameA:'#4a1a2a',frameB:'#2c0d1a'},amethyst:{frameA:'#3a1a4a',frameB:'#1f0d2c'}};var s=skins[skinId];if(!s)return;document.body.style.setProperty('--frameA',s.frameA);document.body.style.setProperty('--frameB',s.frameB);invStore.set('sv-active-skin',skinId);}
 window.InvAPI={addCoins:function(n){invCoins+=n;saveInv();},addChest:function(type){invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();}};
   window._onLevelComplete=function(completedLevel){if(completedLevel<1)return;var roll=Math.random();var type=null;if(roll<0.05)type='gold';else if(roll<0.15)type='silver';else if(roll<0.40)type='bronze';if(!type)return;invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();setTimeout(function(){showReward(type,0);},1500);};
