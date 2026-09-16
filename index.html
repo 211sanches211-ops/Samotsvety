@@ -408,7 +408,8 @@ body.lowperf .chip.zen{animation:none}
 <div class="modepick three">
 <button class="btn mode" data-mode="classic"><span class="ico">🏆</span><span class="t">Классика</span><small>уровни · 20 ходов</small></button>
 <button class="btn mode teal" data-mode="time"><span class="ico">⏱</span><span class="t">На время</span><small>60 секунд · рекорд</small></button>
-<button class="btn mode zen wide-full" data-mode="zen"><span class="ico">🧘</span><span class="t">Дзен</span><small>без ходов · без таймера · расслабься</small></button>
+<button class="btn mode zen" data-mode="zen"><span class="ico">🧘</span><span class="t">Дзен</span><small>расслабься</small></button>
+<button class="btn mode" data-mode="surv" style="background:linear-gradient(#ff8b5d,#c81e46);color:#2b0a12;box-shadow:0 4px 0 #6e1414,0 12px 20px rgba(0,0,0,.35)"><span class="ico">⛏</span><span class="t">Выживание</span><small>волны угроз · рекорд</small></button>
 </div>
 <button class="btn ghost wide" id="btnContinue" hidden>▶&nbsp; Продолжить — <span id="contInfo"></span></button>
 <button class="btn rating wide" id="btnLb" style="margin-top:10px">🏆 Рейтинг</button>
@@ -500,7 +501,8 @@ body.lowperf .chip.zen{animation:none}
 <div class="modepick" style="margin:10px 0 14px">
 <button class="btn ghost wide" id="lbTabC">Классика</button>
 <button class="btn ghost wide" id="lbTabT">На время</button>
-<button class="btn ghost wide" id="lbTabZ" style="grid-column:1/-1">🧘 Дзен</button>
+<button class="btn ghost wide" id="lbTabZ">🧘 Дзен</button>
+<button class="btn ghost wide" id="lbTabS">⛏ Выживание</button>
 </div>
 <ol class="lblist" id="lbList"></ol>
 <div class="plate-hint" id="lbNote"></div>
@@ -578,6 +580,7 @@ const HINT_COST=500, HINT_COST_TIME=4, BOOST_MAX=5;
 const RUSH_TIME=20;
 const HAM_FIRST=20000, HAM_STEP=20000, FRZ_FIRST=45000, FRZ_STEP=45000, SWAP_FIRST=30000, SWAP_STEP=30000;
 const UNDO_FIRST=35000, UNDO_STEP=35000;
+const SURV_WAVE_MOVES=5, SURV_LOSE=0.45;
 const SAVE_KEY='sv-save-v13';
 const THEMES=['Лазурный штрек','Изумрудный грот','Аметистовая пещера','Рубиновый штрек','Золотая галерея'];
 const CHEST_RU={bronze:'Бронзовый',silver:'Серебряный',gold:'Золотой'};
@@ -604,7 +607,7 @@ s1.onerror=()=>{};document.head.appendChild(s1);
 })();
 function playerId(){let p=store.get('sv-pid','');if(!p){p='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);store.set('sv-pid',p);}return p;}
 function playerName(){return (store.get('sv-name','')||'Старатель').slice(0,14);}
-function lbCollection(m){return m==='time'?'lb_time':(m==='zen'?'lb_zen':'lb_classic');}
+function lbCollection(m){return m==='time'?'lb_time':(m==='zen'?'lb_zen':(m==='surv'?'lb_surv':'lb_classic'));}
 function lbLocalPush(m,s){try{const a=JSON.parse(store.get('sv-lb','[]'));
 a.push({n:playerName(),m,s,d:Date.now()});a.sort((x,y)=>y.s-x.s);
 store.set('sv-lb',JSON.stringify(a.slice(0,30)));}catch(e){}}
@@ -650,6 +653,7 @@ async function renderLb(){
   $('#lbTabC').classList.toggle('active',lbMode==='classic');
   $('#lbTabT').classList.toggle('active',lbMode==='time');
   $('#lbTabZ').classList.toggle('active',lbMode==='zen');
+  $('#lbTabS').classList.toggle('active',lbMode==='surv');
   let my=0;
   try{
     const la=JSON.parse(store.get('sv-lb','[]')).filter(r=>r.m===lbMode);
@@ -1091,9 +1095,9 @@ ham=0, frz=0, swapB=0, undoB=0, nextBonusAt=3000, nextHamAt=HAM_FIRST, nextFrzAt
 invHam=+store.get('sv-inv-ham','0')||0, invFrz=+store.get('sv-inv-frz','0')||0, invSwap=+store.get('sv-inv-swap','0')||0, invUndo=+store.get('sv-inv-undo','0')||0,
 hammerAim=false, swapAim=false, swapFirst=null,
 rushT=0, rushPartT=0, rushUsed=false, movesInLevel=0, gateWarned=false, moveCount=0,
-specialCount=0,
+specialCount=0, wave=1, waveMoves=SURV_WAVE_MOVES,
 bestC=+store.get('sv-best-classic','0')||0, bestT=+store.get('sv-best-time','0')||0,
-bestZ=+store.get('sv-best-zen','0')||0,
+bestZ=+store.get('sv-best-zen','0')||0, bestS=+store.get('sv-best-surv','0')||0,
 busy=true, started=false, over=false, runId=0, maxCombo=1, lastTick=99,
 selected=null, hintPair=null, dragStart=null,
 shakeT=0, shakeMag=0, fallRes=null, plateRes=null;
@@ -1101,17 +1105,52 @@ let devCheat=false;
 const tweens=[], particles=[], popups=[], fxBeams=[], fxRings=[], glints=[];
 let glintT=0;
 let lastMove=null;
-const getBest=m=>m==='time'?bestT:(m==='zen'?bestZ:bestC);
+const getBest=m=>m==='time'?bestT:(m==='zen'?bestZ:(m==='surv'?bestS:bestC));
 const zeroMat=()=>Array.from({length:ROWS},()=>Array(COLS).fill(0));
 const rushOn=()=>rushT>0;
 const isZen=()=>mode==='zen';
+const isSurv=()=>mode==='surv';
 const colCount=()=>{let n=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(COL[r][c]>0)n++;return n;};
 let seenCols=false;
 let seenIce=false, seenRock=false;
 let seenFire=store.get('sv-seen-fire','')==='1';
 let seenPoison=store.get('sv-seen-poison','')==='1';
 let seenCham=store.get('sv-seen-cham','')==='1';
-function snapshotState(){
+// ===== ВЫЖИВАНИЕ =====
+function threat(){let n=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
+if(ICE[r][c]>0||ROCK[r][c]>0||FIRE[r+','+c]||POISON[r+','+c])n++;
+return n/(ROWS*COLS);}
+function checkThreat(){if(isSurv()&&threat()>=SURV_LOSE){showBanner('РУДНИК ПОГЛОТИЛ!','bad');gameOver();}}
+function survAdd(kind){
+let guard=0,r,c;
+do{r=irnd(ROWS);c=irnd(COLS);guard++;}
+while(guard<80&&(FIRE[r+','+c]||POISON[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||!grid[r][c]||grid[r][c].special));
+if(guard>=80)return;
+if(kind==='fire')FIRE[r+','+c]=3;
+else if(kind==='poison'){POISON[r+','+c]=1;POISON_AGE[r+','+c]=0;}
+else if(kind==='ice'){ICE[r][c]=1;const g=grid[r][c];if(g)g.iceT=.5;}
+else if(kind==='rock'){ROCK[r][c]=1;grid[r][c]=null;applyGravity();}}
+function survWaveSpawn(w){
+if(w>=1){const n=Math.min(1+Math.floor((w-1)/3),3);for(let i=0;i<n;i++)survAdd('fire');}
+if(w>=2){const n=Math.min(1+Math.floor((w-2)/4),3);for(let i=0;i<n;i++)survAdd('poison');}
+if(w>=3){survAdd('ice');survAdd('ice');}
+if(w>=4){survAdd('rock');}
+if(w%5===0){
+goal={type:'boss',need:50+w*5,done:0,counted:false};
+golemAngry=false;paintGolem();updateBossUI();
+showBanner('ВОЛНА '+w+' · ГОЛЕМ!','bad');Snd.mega();}
+else{showBanner('ВОЛНА '+w,'bad');Snd.tickLow();}}
+function survWaveTick(){
+waveMoves--;
+if(waveMoves>0){updateHUD();return;}
+wave++;waveMoves=SURV_WAVE_MOVES;
+const wb=addScore(200+wave*50);
+survWaveSpawn(wave);
+popup(boardPx/2,cell*1.5,'+'+fmt(wb)+' за волну',false,'#ffe89a');
+if(goal&&goal.type==='boss'&&goal.done<goal.need)golemFreeze();
+applyTheme();updateHUD();updateBossUI();
+checkThreat();}
+  function snapshotState(){
   try{
     lastMove={
       moves,score,levelStartScore,timeLeft,
@@ -1197,7 +1236,8 @@ const THEME_SHORT=['Классическая','Изумрудная','Амети
 function currentTheme(){
 if(themePref!=='auto')return clamp(parseInt(themePref)||0,0,4);
 if(isZen())return 0;
-return Math.floor((level-1)/5)%THEMES.length;
+if(isSurv())return Math.floor((wave-1)/5)%THEMES.length;
+return Math.floor((level-1)/5)%THEMES.length;level-1)/5)%THEMES.length;
 }
 function applyTheme(){
 document.body.dataset.theme=String(currentTheme());
@@ -1223,7 +1263,7 @@ Snd.tick();
 });
 
 function updateBossUI(){
-const active=mode==='classic'&&goal&&goal.type==='boss';
+const active=(mode==='classic'||mode==='surv')&&goal&&goal.type==='boss';
 $('#bossbar').hidden=!active;
 if(el.goalBox)el.goalBox.hidden=active;
 if(!active)return;
@@ -1242,6 +1282,8 @@ if(goal.done>=goal.need&&!goal.counted){goal.counted=true;
 if(!devCheat)statAdd('boss',1);                                        
 const bonus=addScore(2000+level*100);
 showToast('💥 Голем повержен! +'+fmt(bonus));
+ if(isSurv()){FIRE={};POISON={};POISON_AGE={};goal=null;updateBossUI();
+showBanner('ПЕРЕДЫШКА!','teal');updateHUD();}
 Snd.mega();Snd.levelup();confetti();shake(14);buzz([40,60,40]);}}
 function golemFreeze(){
 let iceCnt=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(ICE[r][c]>0)iceCnt++;
@@ -1256,6 +1298,7 @@ const p=cellXY(r,c);popup(p.x,p.y,'❄ голем морозит!',false,'#bfe9f
 Snd.iceCrack();updateHUD();}
 function chamCount(){let n=0;for(const row of grid)for(const g of row)if(g&&g.cham)n++;return n;}
 function chamAllowed(){
+if(isSurv())return started&&wave>=6;
 if(isZen())return false;
 if(mode==='time')return started&&timeLeft<=TIME_START-30;
 return level>=12&&levelGoalKind(level)!=='boss';}
@@ -1970,6 +2013,7 @@ if(mainMet()&&!obstaclesClear()&&!gateWarned){gateWarned=true;
 showToast('⛏ Очисти поле от льда и валунов!');}}
 poisonSpread();
 if(over)return;
+if(isSurv()){checkThreat();if(over)return;survWaveTick();if(over)return;}
 recolorChams();
 if(!findHintPair()){await shuffleBoard(id);if(id!==runId)return;}
 busy=false;hintPair=null;saveGame();}
@@ -2062,6 +2106,8 @@ function useFreeze(){
 frz--;
 if(mode==='classic'){moves+=3;popup(boardPx/2,boardPx/2,'+3 хода',true,'#5ff2d6');bump(el.moves);}
 else if(mode==='time'){timeLeft=Math.min(TIME_CAP,timeLeft+5);popup(boardPx/2,boardPx/2,'+5 с',true,'#5ff2d6');}
+else if(isSurv()){waveMoves+=3;for(const fk of Object.keys(FIRE))delete FIRE[fk];
+popup(boardPx/2,boardPx/2,'⏳ Передышка +3 хода',true,'#5ff2d6');}
 else{popup(boardPx/2,boardPx/2,'🧘 Дзен',true,'#bfe0ff');frz++;}
 Snd.spawn();updateHUD();updateBoosterUI();saveGame();}
 function useUndo(){
@@ -2100,10 +2146,11 @@ saveGame();}
 function saveBest(){
 if(mode==='classic'){if(score>bestC){bestC=score;store.set('sv-best-classic',bestC);return true}}
 else if(mode==='time'){if(score>bestT){bestT=score;store.set('sv-best-time',bestT);return true}}
-else{if(score>bestZ){bestZ=score;store.set('sv-best-zen',bestZ);return true}}
+else if(mode==='zen'){if(score>bestZ){bestZ=score;store.set('sv-best-zen',bestZ);return true}}
+else{if(score>bestS){bestS=score;store.set('sv-best-surv',bestS);return true}}
 return false;}
 function saveGame(){
-if(!started||over||isZen()||devCheat)return;
+if(!started||over||isZen()||isSurv()||devCheat)return;
 try{store.set(SAVE_KEY,JSON.stringify({
 v:2,mode,score,level,moves,levelStartScore,timeLeft,goal,ham,frz,swapB,undoB,nextBonusAt,
 nha:nextHamAt,nfa:nextFrzAt,nsa:nextSwapAt,nuo:nextUndoAt,mvl:movesInLevel,
@@ -2112,7 +2159,7 @@ board:grid.map(row=>row.map(g=>g?[g.t,g.special||null,g.cham?1:0]:null)),
 ice:ICE,rock:ROCK,col:COL,fire:FIRE,poison:POISON,poisonAge:POISON_AGE
 }))}catch(e){}}
 function loadSave(){try{const d=JSON.parse(store.get(SAVE_KEY,'null'));
-return d&&Array.isArray(d.board)&&d.board.length===ROWS&&d.mode!=='zen'?d:null}catch(e){return null}}
+return d&&Array.isArray(d.board)&&d.board.length===ROWS&&d.mode!=='zen'&&d.mode!=='surv'?d:null}catch(e){return null}}
 function clearSave(){store.del(SAVE_KEY)}
 function restoreGame(d){
     mode=d.mode==='time'?'time':'classic';
@@ -2181,10 +2228,11 @@ function gameOver(){
   let title='Ходы закончились';
   if(mode==='time')title='Время вышло!';
   else if(mode==='zen')title='🧘 Дзен завершён';
+  else if(mode==='surv')title='⛏ Выживание окончено';
   $('#ovTitle').textContent=title;
   $('#ovScore').textContent=fmt(score);fitNum($('#ovScore'));
-  $('#ovLblMid').textContent=mode==='time'?'Макс. комбо':(mode==='zen'?'Комбо':'Уровень');
-  $('#ovMid').textContent=mode==='zen'?'×'+Math.max(1,maxCombo):(mode==='time'?'×'+Math.max(1,maxCombo):level);
+  $('#ovLblMid').textContent=mode==='time'?'Макс. комбо':(mode==='zen'?'Комбо':(mode==='surv'?'Волна':'Уровень'));
+$('#ovMid').textContent=(mode==='zen'||mode==='time')?'×'+Math.max(1,maxCombo):(mode==='surv'?wave:level);Combo):level);
   $('#ovBest').textContent=fmt(getBest(mode));fitNum($('#ovBest'));
   $('#recBadge').classList.toggle('on',rec&&score>0&&!devCheat);
   $('#overOv').classList.remove('hidden');
@@ -2220,8 +2268,11 @@ store.set('sv-inv-swap','0'); store.set('sv-inv-undo','0');
         placeObstacles(1);
         spawnFire(1);spawnPoison(1);
         if(m==='zen'){
-            goal=null;
-        } else {
+goal=null;
+} else if(m==='surv'){
+goal=null;
+wave=1;waveMoves=SURV_WAVE_MOVES;
+} else {
             goal=makeGoal(1);
             if(goal&&goal.type==='clean'){
                 goal.needIce=sumIceLayers();
@@ -2238,6 +2289,9 @@ store.set('sv-inv-swap','0'); store.set('sv-inv-undo','0');
     $('#overOv').classList.add('hidden');
     Snd.init();
     if(fresh) introFall();
+  if(m==='surv'&&tutorialOn()&&store.get('sv-seen-surv','')!=='1'){
+store.set('sv-seen-surv','1');
+setTimeout(()=>{showPlate('⛏','Выживание','Каждые 5 ходов приходит волна: огонь, яд, лёд и валуны наступают. Каждая 5-я волна — Кристальный голем, убей его ради передышки. Угроза займёт 45% поля — конец. Держись!');},800);}
     if(allSettled()) busy=false; else fallRes={res:()=>{busy=false}};
     if(m === 'classic' && level === 1 && tutorialOn()){
         setTimeout(async ()=>{
@@ -2250,7 +2304,7 @@ store.set('sv-inv-swap','0'); store.set('sv-inv-undo','0');
     }
 }
 function toMenu(){
-  if(started && isZen() && !over){
+  if(started && (isZen()||isSurv()) && !over){
     gameOver();
     return;
   }
@@ -2599,8 +2653,9 @@ function bump(e){e.classList.remove('bump');void e.offsetWidth;e.classList.add('
 function applyModeUI(){
 const time=mode==='time';
 const zen=mode==='zen';
-el.lblMid.textContent=zen?'Режим':(time?'Время, с':'Уровень');
-el.lblRight.textContent=zen?'Рекорд':(time?'Рекорд':'Ходы');
+const surv=mode==='surv';
+el.lblMid.textContent=surv?'Волна':(zen?'Режим':(time?'Время, с':'Уровень'));
+el.lblRight.textContent=surv?'До волны':(zen?'Рекорд':(time?'Рекорд':'Ходы'));
 $('#hintCost').textContent=time?('−'+HINT_COST_TIME+' с'):('−'+HINT_COST);
 $('#btnHint').style.opacity=zen?'0.55':'';
 }
@@ -2614,9 +2669,15 @@ el.movesStat.classList.remove('low');el.midStat.classList.remove('low');
 el.chipIce.hidden=true;el.chipRock.hidden=true;el.chipCham.hidden=true;el.chipPoison.hidden=true;el.chipFire.hidden=true;
 el.chipZen.hidden=false;}
 else{
-el.mid.textContent=level;el.midStat.classList.remove('low');
+el.midStat.classList.remove('low');
+if(isSurv()){
+el.mid.textContent=wave;fitNum(el.mid);
+el.moves.textContent=waveMoves;fitNum(el.moves);
+el.movesStat.classList.toggle('low',waveMoves<=2&&!over);}
+else{
+el.mid.textContent=level;fitNum(el.mid);
 el.moves.textContent=moves;fitNum(el.moves);
-el.movesStat.classList.toggle('low',moves<=5&&!over);
+el.movesStat.classList.toggle('low',moves<=5&&!over);}
 el.chipZen.hidden=true;
 let ni=0,nr=0,nc=0,np=poisonCount(),nf=0;
 for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
@@ -2645,6 +2706,13 @@ el.goalNum.textContent=Math.ceil(tl)+' с';
 el.goalLbl.textContent='Осталось';
 el.bar.style.width=clamp(tl/TIME_START*100,0,100)+'%';
 el.bar.classList.toggle('danger',tl<=10);
+el.bar.classList.remove('zen');}
+else if(isSurv()){
+const th=threat()*100;
+el.goalLbl.textContent='Угроза рудника';
+el.goalNum.textContent=Math.round(th)+'% / 45%';
+el.bar.style.width=clamp(th/SURV_LOSE/100*100,0,100)+'%';
+el.bar.classList.toggle('danger',th>=30);
 el.bar.classList.remove('zen');}
 else if(mode==='zen'){
 el.goalLbl.textContent='Дзен';
@@ -2768,7 +2836,7 @@ if(isZen()){showToast('🧘 В дзене подсказки бесплатны!
 Snd.init();
 const pair=findHintPair();if(!pair){Snd.bad();return;}
 if(!isZen()){
-if(mode==='classic'){
+if(mode==='classic'||isSurv()){
 if(score<HINT_COST){Snd.bad();popup(boardPx/2,boardPx/2,'Нужно '+HINT_COST+' очков',false,'#ff8b8b');return;}
 score-=HINT_COST;popup(boardPx/2,boardPx/2,'−'+HINT_COST,true,'#ff8b8b');}
 else{
@@ -2800,6 +2868,7 @@ $('#btnLbRefresh').addEventListener('click',()=>renderLb());
 $('#lbTabC').addEventListener('click',()=>{lbMode='classic';renderLb();});
 $('#lbTabT').addEventListener('click',()=>{lbMode='time';renderLb();});
 $('#lbTabZ').addEventListener('click',()=>{lbMode='zen';renderLb();});
+$('#lbTabS').addEventListener('click',()=>{lbMode='surv';renderLb();});
 $('#btnHow').addEventListener('click',()=>$('#howOv').classList.remove('hidden'));
 $('#btnHowClose').addEventListener('click',()=>$('#howOv').classList.add('hidden'));
 $('#btnSettings').addEventListener('click',()=>$('#setOv').classList.remove('hidden'));
@@ -3011,10 +3080,10 @@ dailyLoad();
 });
 window.addEventListener('beforeunload',()=>saveGame());
 window.addEventListener('pagehide',()=>{
-  if(started&&isZen()&&!over&&score>0&&!devCheat){
-    lbLocalPush('zen',score);
-    lbQueuePush('zen',score);
-    saveBest();
+ if(started&&(isZen()||isSurv())&&!over&&score>0&&!devCheat){
+lbLocalPush(mode,score);
+lbQueuePush(mode,score);
+saveBest();
   }else if(!devCheat){
     saveGame();
   }
