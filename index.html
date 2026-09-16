@@ -321,12 +321,14 @@ body.lowperf #barFill::after{animation:none}
 body.lowperf .overlay,body.lowperf .plate{backdrop-filter:none;-webkit-backdrop-filter:none}
 body.lowperf .chip.zen{animation:none}
 #btnPerfSet,#btnTutorialSet{min-width:82px;padding:13px 8px;font-size:14px}
-  /* === стабильный HUD: очки не пляшут === */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+/* === стабильный HUD: очки не пляшут === */
 .stat{min-width:0}
-.stat b{white-space:nowrap;font-variant-numeric:tabular-nums;font-size:clamp(17px,4.6vw,24px)}
-.stat b.n6{font-size:clamp(14px,3.8vw,20px)}
-.stat b.n8{font-size:clamp(11px,3vw,16px)}
+.stat b,.stat.score b{white-space:nowrap;font-variant-numeric:tabular-nums}
+@media (min-width:960px){
+.stat b,.stat.score b{font-size:clamp(16px,1.7vw,22px)}
+.stat b.n6,.stat.score b.n6{font-size:clamp(13px,1.4vw,18px)}
+.stat b.n8,.stat.score b.n8{font-size:clamp(11px,1.2vw,15px)}
+}
 </style>
 </head>
 <body>
