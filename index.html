@@ -3426,7 +3426,11 @@ try{const choice=await deferredPrompt.userChoice;if(choice&&choice.outcome==='ac
 deferredPrompt=null;
 return;}
 const iOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-showToast(iOS?'📲 Поделиться (квадрат со стрелкой вверх) → «На экран «Домой»»':'📲 Меню браузера (⋮) → «Установить» / «Добавить на главный экран»');});
+const row=$('#installRow');
+const msg=iOS?'📲 Тапни «Поделиться» (квадрат со стрелкой) → «На экран «Домой»»':'📲 Открой меню браузера (⋮) → «Добавить на главный экран»';
+row.innerHTML='<span style="flex:1;text-align:left;line-height:1.35;color:#bfe6ff;font-size:13px">'+msg+'</span><button class="btn ghost" id="btnInstallHide" style="padding:8px 12px;font-size:12px">Понятно</button>';
+document.getElementById('btnInstallHide').addEventListener('click',()=>row.hidden=true);
+});
 
 let last=performance.now();
 function frame(now){
