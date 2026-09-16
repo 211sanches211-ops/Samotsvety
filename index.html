@@ -1111,6 +1111,10 @@ shakeT=0, shakeMag=0, fallRes=null, plateRes=null;
 let devCheat=false;
 const RESCUE_PRICES=[3000,6000,12000];
 let rescueUsed=0, rescuePending=false;
+  let lvlSnap=null;
+function captureLevelSnapshot(){
+lvlSnap={ham,frz,swapB,undoB,nextHamAt,nextFrzAt,nextSwapAt,nextUndoAt,nextBonusAt};
+}
 const tweens=[], particles=[], popups=[], fxBeams=[], fxRings=[], glints=[];
 let glintT=0;
 let lastMove=null;
@@ -2046,6 +2050,7 @@ if(goal&&goal.type==='clean'){goal.needIce=sumIceLayers();goal.needRock=rockCoun
 if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
 seedChams();
 applyTheme();updateHUD();updateBoosterUI();updateBossUI();saveGame();
+captureLevelSnapshot();
 const infos=levelInfos(level,added);
 for(const info of infos){
     await showPlate(info.ico,info.title,info.text);
@@ -2264,7 +2269,14 @@ ov.querySelector('#btnRescueNo').addEventListener('click',()=>{bye();rescuePendi
 ov.addEventListener('click',e=>{if(e.target===ov){bye();rescuePending=false;gameOver();}});
 }
 function retryLevel(){
+if(lvlSnap){
+ham=lvlSnap.ham;frz=lvlSnap.frz;swapB=lvlSnap.swapB;undoB=lvlSnap.undoB;
+nextHamAt=lvlSnap.nextHamAt;nextFrzAt=lvlSnap.nextFrzAt;
+nextSwapAt=lvlSnap.nextSwapAt;nextUndoAt=lvlSnap.nextUndoAt;
+nextBonusAt=lvlSnap.nextBonusAt;
+}
 score=levelStartScore;dispScore=score;lastShown=-1;
+lastMove=null;
 moves=levelGoalKind(level)==='clean'?25:MOVES_PER_LEVEL;
 movesInLevel=0;gateWarned=false;moveCount=0;
 FIRE={};POISON={};POISON_AGE={};
@@ -2277,10 +2289,10 @@ if(goal&&goal.type==='clean'){goal.needIce=sumIceLayers();goal.needRock=rockCoun
 if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
 seedChams();
 over=false;busy=true;
-updateHUD();updateBossUI();applyTheme();
+updateHUD();updateBossUI();updateBoosterUI();applyTheme();
 introFall();
 if(allSettled())busy=false;else fallRes={res:()=>{busy=false}};
-showToast('↻ Уровень '+level+': заново');
+showToast('↻ Уровень '+level+': заново, бустеры возвращены');
 if(Snd.on){Snd.init();Snd.shuffleS();}
 }
   function gameOver(){
@@ -2357,8 +2369,9 @@ wave=1;waveMoves=SURV_WAVE_MOVES;
     } else {
         restoreGame(data);
     }
-    if(goal&&goal.type==='boss') paintGolem();
-    applyModeUI();applyTheme();updateHUD();updateBoosterUI();updateBossUI();
+    captureLevelSnapshot();
+if(goal&&goal.type==='boss') paintGolem();
+applyModeUI();applyTheme();updateHUD();updateBoosterUI();updateBossUI();
     $('#startOv').classList.add('hidden');
     $('#overOv').classList.add('hidden');
     Snd.init();
@@ -3295,9 +3308,10 @@ function devJumpToLv(n){
     goal=makeGoal(level);
     if(goal&&goal.type==='clean'){goal.needIce=sumIceLayers();goal.needRock=rockCount();goal.ready=true;}
     if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
-    seedChams();
-    applyTheme();updateHUD();updateBoosterUI();updateBossUI();
-    setTimeout(()=>{
+   seedChams();
+applyTheme();updateHUD();updateBoosterUI();updateBossUI();
+captureLevelSnapshot();
+setTimeout(()=>{
       busy=false; fallRes=null; started=true; over=false;
       if(devPending.boosters){
         devCheat=true;
