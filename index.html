@@ -2127,7 +2127,7 @@ e.classList.toggle('n8',len>=8);}
 function gameOver(){
   if(over)return;
   over=true;busy=true;clearSave();
-  if(!devCheat){statAdd('runs',1);STATS.maxCombo=Math.max(STATS.maxCombo||0,maxCombo);statSave();}
+  commitRunStats();
   if(rushT>0)endRush();
   const rec=saveBest();
   if(devCheat){
@@ -2155,7 +2155,8 @@ function introFall(){
 for(const row of grid)for(const g of row){if(!g)continue;const p=cellXY(g.r,g.c);
 g.y=p.y-boardPx*1.15-(g.c*.45+g.r*.2)*cell-rnd(0,cell);g.falling=true;g.vy=0;}}
 function beginRun(fresh,m,data){
-    runId++;over=false;started=true;busy=true;selected=null;hintPair=null;dragStart=null;
+if(started&&!over)commitRunStats(); // предыдущий забег брошен без проигрыша
+runId++;over=false;started=true;busy=true;selected=null;hintPair=null;dragStart=null;
     hammerAim=false;swapFirst=null;hidePlate();
     rushT=0;rushUsed=false;movesInLevel=0;gateWarned=false;moveCount=0;FIRE={};POISON={};POISON_AGE={};specialCount=0;
     devCheat=false;
@@ -2891,6 +2892,12 @@ const STATS_KEY='sv-stats-v1';
 let STATS=(()=>{try{return JSON.parse(store.get(STATS_KEY,'null'))||{runs:0,maxCombo:0,chests:0,coins:0,boss:0};}catch(e){return{runs:0,maxCombo:0,chests:0,coins:0,boss:0};}})();
 function statSave(){store.set(STATS_KEY,JSON.stringify(STATS));}
 function statAdd(k,n){STATS[k]=(STATS[k]||0)+(n===undefined?1:n);statSave();}
+  function commitRunStats(){
+if(devCheat)return;
+statAdd('runs',1);
+STATS.maxCombo=Math.max(STATS.maxCombo||0,maxCombo);
+statSave();
+}
 function renderStats(){
 const rows=[
 ['🏃 Забегов сыграно',fmt(STATS.runs||0)],
