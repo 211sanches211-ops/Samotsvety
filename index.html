@@ -2393,7 +2393,7 @@ gnomeImg.onload=()=>{gnomeImgOK=true;};
 gnomeImg.src='gnome.png';
 function gnomePeekShow(){
 const gp=$('#gnomePeek');if(!gp)return;
-if(!gnomeImgOK){gp.setAttribute('src','data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><text x="40" y="62" text-anchor="middle" font-size="62">💣</text></svg>'));gp.classList.add('on');}
+gp.classList.add('on');
 else gp.classList.add('on');
 if(Snd.on){Snd.init();if(Snd.gnom)Snd.gnom();}
 }
@@ -2809,13 +2809,7 @@ const rr2=cell*.46+Math.sin(t*7)*cell*.02;
 ctx.strokeStyle=`rgba(255,214,107,${.7+.3*Math.sin(t*7)})`;
 ctx.lineWidth=3;ctx.shadowColor='#ffd66b';ctx.shadowBlur=14;
 rr(ctx,p.x-rr2,p.y-rr2,rr2*2,rr2*2,cell*.18);ctx.stroke();ctx.shadowBlur=0;}
-if(dynAim){
-dynAim=false;
-board.classList.remove('aim');
-dynStrike(r,c);
-updateBoosterUI();
-return;
-}
+
   if(hammerAim){ctx.strokeStyle=`rgba(255,140,80,${.5+.3*Math.sin(t*6)})`;
 ctx.lineWidth=3;ctx.setLineDash([cell*.16,cell*.12]);
 rr(ctx,2,2,boardPx-4,boardPx-4,12);ctx.stroke();ctx.setLineDash([]);}
@@ -2984,6 +2978,7 @@ canvas.addEventListener('pointerdown',e=>{
 if(!started||busy||over)return;Snd.init();
 const pos=pick(e);if(!pos)return;
 hintPair=null;
+if(dynAim){dynAim=false;board.classList.remove('aim');dynStrike(pos.r,pos.c);updateBoosterUI();return;}
 if(hammerAim){hammerStrike(pos.r,pos.c);return;}
 if(swapAim){
 if(COL[pos.r][pos.c]>0){Snd.colHit();shake(2);return;}
