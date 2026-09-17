@@ -2402,6 +2402,7 @@ function gnomePeekHide(){const gp=$('#gnomePeek');if(gp)gp.classList.remove('on'
 function gnomeThrowJolt(){const gp=$('#gnomePeek');if(!gp)return;gp.classList.add('throw');setTimeout(()=>gp.classList.remove('throw'),130);}
 function gnomStrike(){
 if(over||busy||!started||isZen())return;
+busy=true;
 if(!window.InvAPI||InvAPI.inv('gnom')<=0){showToast('💣 Гнома нет в запасе: магазин');return;}
 if(!InvAPI.spend('gnom'))return;
 busy=true;
@@ -3070,7 +3071,7 @@ hintPair=pair;Snd.tick();updateHUD();});
 $('#btnDyn').addEventListener('click',()=>{
 if(over||busy||!started||isZen())return;
 if(!window.InvAPI||InvAPI.inv('dyn')<=0){showToast('🧨 Динамита нет: загляни в магазин');return;}
-dynAim=true;
+dynAim=true;hammerAim=false;swapAim=false;
 board.classList.add('aim');
 showToast('🧨 Тапни по клетке');
 if(Snd.on){Snd.init();Snd.tick();}
@@ -3081,11 +3082,15 @@ if(ev.target.closest('#btnDyn'))return;
 if(ev.target.closest('.cell'))return;
 dynAim=false;board.classList.remove('aim');
 },true);
-$('#btnGnom').addEventListener('click',()=>gnomStrike());
+$('#btnGnom').addEventListener('click',()=>{
+if(over||busy||!started||isZen())return;
+hammerAim=false;swapAim=false;dynAim=false;
+gnomStrike();
+});
   $('#btnHam').addEventListener('click',()=>{
 if(!started||over||busy)return;Snd.init();
 if(ham<=0){Snd.bad();return;}
-hammerAim=!hammerAim;swapAim=false;swapFirst=null;updateBoosterUI();
+hammerAim=!hammerAim;swapAim=false;dynAim=false;swapFirst=null;updateBoosterUI();
 if(hammerAim){Snd.tick();popup(boardPx/2,boardPx*.5,'Тапни по цели',false,'#ffd66b');}});
 $('#btnFrz').addEventListener('click',()=>{
 if(!started||over)return;Snd.init();
