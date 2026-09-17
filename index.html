@@ -2985,6 +2985,7 @@ hintPair=null;
 
 
 
+if(dynAim){dynAim=false;board.classList.remove('aim');dynStrike(pos.r,pos.c);updateBoosterUI();return;}
 if(hammerAim){hammerStrike(pos.r,pos.c);return;}
 if(swapAim){
 if(COL[pos.r][pos.c]>0){Snd.colHit();shake(2);return;}
@@ -3099,11 +3100,12 @@ useFreeze();});
 $('#btnSwap').addEventListener('click',()=>{
 if(!started||over||busy)return;Snd.init();
 if(swapB<=0&&!isZen()){Snd.bad();return;}
-swapAim=!swapAim;swapFirst=null;hammerAim=false;updateBoosterUI();
+swapAim=!swapAim;swapFirst=null;hammerAim=false;dynAim=false;updateBoosterUI();
 if(swapAim){Snd.swapCast();popup(boardPx/2,boardPx*.5,'Выбери два камня',false,'#5ff2d6');}});
 $('#btnUndo').addEventListener('click',()=>{
 if(!started||over||busy)return;Snd.init();
 if(undoB<=0&&!isZen()){Snd.bad();return;}
+dynAim=false;hammerAim=false;swapAim=false;
 useUndo();});
 $('#btnLb').addEventListener('click',()=>openLb('classic'));
 $('#btnLb2').addEventListener('click',()=>openLb(mode));
