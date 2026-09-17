@@ -150,7 +150,7 @@ box-shadow:0 4px 0 #0a7a64, 0 12px 20px rgba(0,0,0,.35)}
 .btn.zen{background:linear-gradient(#b8d8ff,#7eb6ff);color:#0a1e3a;
 box-shadow:0 4px 0 #2a5a8c, 0 12px 20px rgba(0,0,0,.35)}
 .btn.zen:active{box-shadow:0 1px 0 #2a5a8c}
-.btn.icon{width:50px;padding:13px 0;display:grid;place-items:center;font-size:18px;flex:none;position:relative}
+.btn.icon{width:44px;padding:10px 0;display:grid;place-items:center;font-size:16px;flex:none;position:relative}
 .btn.big{font-size:19px;padding:16px 40px;border-radius:18px;letter-spacing:.04em}
 .btn.wide{flex:1;width:100%;min-width:140px}
 .btn.mode{display:flex;flex-direction:column;align-items:center;gap:3px;padding:16px 10px;border-radius:18px}
@@ -322,10 +322,11 @@ body.lowperf .overlay,body.lowperf .plate{backdrop-filter:none;-webkit-backdrop-
 body.lowperf .chip.zen{animation:none}
 #btnPerfSet,#btnTutorialSet{min-width:82px;padding:13px 8px;font-size:14px}
 .board-frame{position:relative;overflow:visible}
-#gnomePeekBox{position:absolute;left:0;right:0;bottom:calc(100% - 10px);height:142px;overflow:hidden;pointer-events:none;z-index:6}
-#gnomePeek{position:absolute;left:50%;bottom:0;width:132px;transform:translate(-50%,112%);transition:transform .38s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
-#gnomePeek.on{transform:translate(-50%,0)}
-#gnomePeek.on.throw{transform:translate(-50%,4%) rotate(-7deg) scale(1.06);transition:transform .09s ease-out}
+#gnomePeekBox{position:absolute;left:0;right:0;bottom:100%;height:160px;overflow:hidden;pointer-events:none;z-index:6}
+#gnomePeek{position:absolute;left:50%;bottom:0;width:160px;transform:translate(-50%,110%);transition:transform .38s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+#gnomePeek.on{transform:translate(-50%,8%)}
+#gnomePeek.on.throw{transform:translate(-50%,12%);transition:transform .09s ease-out}
+@media(max-width:360px){#gnomePeek{width:130px}#gnomePeekBox{height:130px}}
   .board.aim{cursor:crosshair}
 .board.aim .cell:hover{outline:2px solid #ffe89a;outline-offset:-2px}
 @media(max-width:360px){#gnomePeek{width:110px}#gnomePeekBox{height:120px}}
