@@ -321,7 +321,7 @@ body.lowperf #barFill::after{animation:none}
 body.lowperf .overlay,body.lowperf .plate{backdrop-filter:none;-webkit-backdrop-filter:none}
 body.lowperf .chip.zen{animation:none}
 #btnPerfSet,#btnTutorialSet{min-width:82px;padding:13px 8px;font-size:14px}
-.board-frame{position:relative}
+.board-frame{position:relative;overflow:visible}
 #gnomePeekBox{position:absolute;left:0;right:0;bottom:calc(100% - 10px);height:142px;overflow:hidden;pointer-events:none;z-index:6}
 #gnomePeek{position:absolute;left:50%;bottom:0;width:132px;transform:translate(-50%,112%);transition:transform .38s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
 #gnomePeek.on{transform:translate(-50%,0)}
@@ -397,7 +397,7 @@ body.lowperf .chip.zen{animation:none}
 </aside>
 <section class="stage">
 <div class="board-frame">
-<div id="gnomePeekBox"><img id="gnomePeek" alt=""></div>
+<div id="gnomePeekBox"><img id="gnomePeek" src="gnome.png" alt=""></div>
 <canvas id="board"></canvas>
 <div class="banner" id="banner"></div>
 <div class="toast" id="toast"></div>
