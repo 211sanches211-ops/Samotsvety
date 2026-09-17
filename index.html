@@ -322,10 +322,10 @@ body.lowperf .overlay,body.lowperf .plate{backdrop-filter:none;-webkit-backdrop-
 body.lowperf .chip.zen{animation:none}
 #btnPerfSet,#btnTutorialSet{min-width:82px;padding:13px 8px;font-size:14px}
 .board-frame{position:relative;overflow:visible}
-#gnomePeekBox{position:absolute;left:0;right:0;top:-10px;height:180px;overflow:hidden;pointer-events:none;z-index:1}
-#gnomePeek{position:absolute;left:50%;bottom:0;width:160px;transform:translate(-50%,100%);transition:transform .38s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
-#gnomePeek.on{transform:translate(-50%,-100%)}
-#gnomePeek.on.throw{transform:translate(-50%,-96%);transition:transform .09s ease-out}
+#gnomePeekBox{position:absolute;left:0;right:0;bottom:100%;height:180px;overflow:hidden;pointer-events:none;z-index:1}
+#gnomePeek{position:absolute;left:50%;bottom:0;width:160px;transform:translate(-50%,110%);transition:transform .38s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+#gnomePeek.on{transform:translate(-50%,18%)}
+#gnomePeek.on.throw{transform:translate(-50%,12%);transition:transform .09s ease-out}
 @media(max-width:360px){#gnomePeek{width:130px}#gnomePeekBox{height:150px}}
 .board.aim{cursor:crosshair}
 .board.aim .cell:hover{outline:2px solid #ffe89a;outline-offset:-2px}
