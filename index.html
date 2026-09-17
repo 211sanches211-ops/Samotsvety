@@ -2395,7 +2395,8 @@ gnomeImg.onload=()=>{gnomeImgOK=true;};
 gnomeImg.src='gnome.png';
 function gnomePeekShow(){
 const gp=$('#gnomePeek');if(!gp)return;
-gp.classList.add('on');
+if(!gnomeImgOK){gp.setAttribute('src','data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><text x="40" y="62" text-anchor="middle" font-size="62">💣</text></svg>'));gp.classList.add('on');}
+else gp.classList.add('on');
 if(Snd.on){Snd.init();if(Snd.gnom)Snd.gnom();}
 }
 function gnomePeekHide(){const gp=$('#gnomePeek');if(gp)gp.classList.remove('on','throw');}
@@ -2981,10 +2982,6 @@ canvas.addEventListener('pointerdown',e=>{
 if(!started||busy||over)return;Snd.init();
 const pos=pick(e);if(!pos)return;
 hintPair=null;
-
-
-
-
 
 if(dynAim){dynAim=false;board.classList.remove('aim');dynStrike(pos.r,pos.c);updateBoosterUI();return;}
 if(hammerAim){hammerStrike(pos.r,pos.c);return;}
