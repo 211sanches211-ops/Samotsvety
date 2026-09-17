@@ -321,6 +321,12 @@ body.lowperf #barFill::after{animation:none}
 body.lowperf .overlay,body.lowperf .plate{backdrop-filter:none;-webkit-backdrop-filter:none}
 body.lowperf .chip.zen{animation:none}
 #btnPerfSet,#btnTutorialSet{min-width:82px;padding:13px 8px;font-size:14px}
+.board-frame{position:relative}
+#gnomePeekBox{position:absolute;left:0;right:0;bottom:calc(100% - 10px);height:142px;overflow:hidden;pointer-events:none;z-index:6}
+#gnomePeek{position:absolute;left:50%;bottom:0;width:132px;transform:translate(-50%,112%);transition:transform .38s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+#gnomePeek.on{transform:translate(-50%,0)}
+#gnomePeek.on.throw{transform:translate(-50%,4%) rotate(-7deg) scale(1.06);transition:transform .09s ease-out}
+@media(max-width:360px){#gnomePeek{width:110px}#gnomePeekBox{height:120px}}
 /* === стабильный HUD: очки не пляшут === */
 .stat{min-width:0}
 .stat b,.stat.score b{white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -378,15 +384,18 @@ body.lowperf .chip.zen{animation:none}
 <button class="btn ghost icon" id="btnHam" title="Молот">⛏<span class="cnt" id="hamN">0</span></button>
 <button class="btn ghost icon" id="btnFrz" title="Заморозка">⏳<span class="cnt" id="frzN">0</span></button>
 <button class="btn ghost icon" id="btnSwap" title="Обмен">🔄<span class="cnt" id="swapN">0</span></button>
-<button class="btn ghost icon" id="btnSound" title="Звук">🔊</button>
+<button class="btn ghost icon" id="btnDyn" title="Динамит: взрыв 3×3">🧨<span class="badge" id="dynBadge">0</span></button>
+<button class="btn ghost icon" id="btnGnom" title="Гном-подрывник: 3 удара по угрозам">💣<span class="badge" id="gnomBadge">0</span></button>
 <button class="btn ghost icon" id="btnRestart" title="Заново">↻</button>
 <button class="btn ghost icon" id="btnInvGame" title="Инвентарь">📦</button>
 <button class="btn ghost icon" id="btnMenu" title="В меню">🏠</button>
+<button class="btn ghost icon" id="btnSound" title="Звук">🔊</button>
 </div>
 <div class="best">Рекорд:<b id="best">0</b></div>
 </aside>
 <section class="stage">
 <div class="board-frame">
+<div id="gnomePeekBox"><img id="gnomePeek" alt=""></div>
 <canvas id="board"></canvas>
 <div class="banner" id="banner"></div>
 <div class="toast" id="toast"></div>
@@ -782,7 +791,28 @@ play();
 },
 
 };
-window.Snd=Snd; // делаем Snd видимым через window для соседних скриптов
+Snd.gnom=function(){
+if(!this.on)return;this.init();
+const ctx=this.ctx||this.ac||this.context;if(!ctx)return;
+const t=ctx.currentTime;
+const o=ctx.createOscillator(),g=ctx.createGain();
+o.type='triangle';
+o.frequency.setValueAtTime(160,t);
+o.frequency.exponentialRampToValueAtTime(520,t+0.12);
+o.frequency.exponentialRampToValueAtTime(240,t+0.3);
+g.gain.setValueAtTime(0.0001,t);
+g.gain.exponentialRampToValueAtTime(0.22,t+0.03);
+g.gain.exponentialRampToValueAtTime(0.0001,t+0.38);
+o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+0.42);
+[660,880].forEach((f,i)=>{
+const o2=ctx.createOscillator(),g2=ctx.createGain();const tt=t+0.34+i*0.09;
+o2.type='square';o2.frequency.value=f;
+g2.gain.setValueAtTime(0.0001,tt);
+g2.gain.exponentialRampToValueAtTime(0.1,tt+0.02);
+g2.gain.exponentialRampToValueAtTime(0.0001,tt+0.08);
+o2.connect(g2);g2.connect(ctx.destination);o2.start(tt);o2.stop(tt+0.1);});
+};
+  window.Snd=Snd; // делаем Snd видимым через window для соседних скриптов
 const canvas=$('#board'), ctx=canvas.getContext('2d');
 
 let boardPx=0, cell=0, dpr=1;
@@ -1100,7 +1130,7 @@ mode='classic', score=0, dispScore=0, lastShown=-1,
 level=1, moves=MOVES_PER_LEVEL, levelStartScore=0, timeLeft=TIME_START,
 ham=0, frz=0, swapB=0, undoB=0, nextBonusAt=3000, nextHamAt=HAM_FIRST, nextFrzAt=FRZ_FIRST, nextSwapAt=SWAP_FIRST, nextUndoAt=UNDO_FIRST,
 invHam=+store.get('sv-inv-ham','0')||0, invFrz=+store.get('sv-inv-frz','0')||0, invSwap=+store.get('sv-inv-swap','0')||0, invUndo=+store.get('sv-inv-undo','0')||0,
-hammerAim=false, swapAim=false, swapFirst=null,
+  hammerAim=false, swapAim=false, swapFirst=null,
 rushT=0, rushPartT=0, rushUsed=false, movesInLevel=0, gateWarned=false, moveCount=0,
 specialCount=0, wave=1, waveMoves=SURV_WAVE_MOVES,
 bestC=+store.get('sv-best-classic','0')||0, bestT=+store.get('sv-best-time','0')||0,
@@ -1109,6 +1139,9 @@ busy=true, started=false, over=false, runId=0, maxCombo=1, lastTick=99,
 selected=null, hintPair=null, dragStart=null,
 shakeT=0, shakeMag=0, fallRes=null, plateRes=null;
 let devCheat=false;
+let dynAim=false;
+  let invDyn=+store.get('sv-inv-dyn','0')||0;
+let invGnom=+store.get('sv-inv-gnom','0')||0;
 const RESCUE_PRICES=[3000,6000,12000];
 let rescueUsed=0, rescuePending=false;
   let lvlSnap=null;
@@ -2075,6 +2108,11 @@ await new Promise(res=>addTween(400,easeInOutQuad,k=>{
 for(const f of from){const t=cellXY(f.g.r,f.g.c);
 f.g.x=f.x+(t.x-f.x)*k;f.g.y=f.y+(t.y-f.y)*k;}},res));}
 function updateBoosterUI(){
+const _inv=window.InvAPI;
+$('#dynBadge').textContent=_inv?_inv.inv('dyn'):0;
+$('#gnomBadge').textContent=_inv?_inv.inv('gnom'):0;
+$('#btnDyn').disabled=isZen()||!_inv||_inv.inv('dyn')<=0;
+$('#btnGnom').disabled=isZen()||!_inv||_inv.inv('gnom')<=0;
 $('#hamN').textContent=ham;$('#frzN').textContent=frz;$('#swapN').textContent=swapB;
 $('#undoN').textContent=undoB;
 $('#btnHam').classList.toggle('off',ham<=0);
@@ -2295,6 +2333,95 @@ if(allSettled())busy=false;else fallRes={res:()=>{busy=false}};
 showToast('↻ Уровень '+level+': заново, бустеры возвращены');
 if(Snd.on){Snd.init();Snd.shuffleS();}
 }
+ // ===== ДИНАМИТ И ГНОМ =====
+function boosterBlast(r,c,rad){
+rad=rad||1;
+const set=new Set(),direct=new Set();
+for(let dr=-rad;dr<=rad;dr++)for(let dc=-rad;dc<=rad;dc++){
+const rr=r+dr,cc=c+dc;
+if(rr<0||cc<0||rr>=ROWS||cc>=COLS)continue;
+if(COL[rr][cc]>0)continue;
+const kk=key(rr,cc);
+if(ROCK[rr][cc]>0||ICE[rr][cc]>0){direct.add(kk);continue;}
+set.add(kk);}
+const tr=expandWithSpecials(set,direct);
+if(tr)addScore(tr*200);
+direct.forEach(k=>{const[a,b]=k.split(',').map(Number);
+const p=cellXY(a,b);
+if(ROCK[a][b]>0){ROCK[a][b]=0;fxRings.push({x:p.x,y:p.y,t:0});}
+else if(ICE[a][b]>0){ICE[a][b]=Math.max(0,ICE[a][b]-1);const g=grid[a][b];if(g)g.iceT=.5;}});
+set.forEach(k=>{const[a,b]=k.split(',').map(Number);
+if(FIRE[a+','+b])delete FIRE[a+','+b];
+if(POISON[a+','+b]){delete POISON[a+','+b];delete POISON_AGE[a+','+b];}
+grid[a][b]=null;});
+}
+function dynStrike(r,c){
+if(!window.InvAPI||!InvAPI.spend('dyn'))return;
+const p=cellXY(r,c);
+popup(p.x,p.y,'🧨',true,'#ffe89a');
+fxRings.push({x:p.x,y:p.y,t:0});
+boosterBlast(r,c,1);
+addScore(200);
+if(Snd.on){Snd.init();Snd.mega();}
+showToast('🧨 Бум!');
+applyGravity();
+updateHUD();updateBoosterUI();
+}
+function pickThreatTarget(){
+const threats=[];
+for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+if(ROCK[r][c]>0)threats.push({r,c,w:4});
+else if(ICE[r][c]>0)threats.push({r,c,w:3});
+else if(FIRE[r+','+c])threats.push({r,c,w:2});
+else if(POISON[r+','+c])threats.push({r,c,w:1});}
+if(threats.length){
+const total=threats.reduce((s,t)=>s+t.w,0);
+let x=Math.random()*total;
+for(const t of threats){x-=t.w;if(x<=0)return{r:t.r,c:t.c};}
+return threats[0];}
+const free=[];
+for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
+if(grid[r][c]&&COL[r][c]===0&&ROCK[r][c]===0)free.push({r,c});
+if(free.length)return free[Math.floor(Math.random()*free.length)];
+return null;
+}
+let gnomeImgOK=false;
+const gnomeImg=new Image();
+gnomeImg.onload=()=>{gnomeImgOK=true;};
+gnomeImg.src='gnome.png';
+function gnomePeekShow(){
+const gp=$('#gnomePeek');if(!gp)return;
+if(gnomeImgOK)gp.classList.add('on');
+if(Snd.on){Snd.init();if(Snd.gnom)Snd.gnom();}
+}
+function gnomePeekHide(){const gp=$('#gnomePeek');if(gp)gp.classList.remove('on','throw');}
+function gnomeThrowJolt(){const gp=$('#gnomePeek');if(!gp)return;gp.classList.add('throw');setTimeout(()=>gp.classList.remove('throw'),130);}
+function gnomStrike(){
+if(over||busy||!started||isZen())return;
+if(!window.InvAPI||InvAPI.inv('gnom')<=0){showToast('💣 Гнома нет в запасе: магазин');return;}
+if(!InvAPI.spend('gnom'))return;
+busy=true;
+updateBoosterUI();
+gnomePeekShow();
+setTimeout(()=>{showBanner('🧨 Гном-подрывник за работой!','teal');},900);
+let i=0;
+const hit=()=>{
+if(over||i>=3){gnomePeekHide();busy=false;updateBoosterUI();return;}
+const t=pickThreatTarget();
+if(!t){gnomePeekHide();busy=false;updateBoosterUI();return;}
+gnomeThrowJolt();
+const p=cellXY(t.r,t.c);
+popup(p.x,p.y,'💣',true,'#ffe89a');
+fxRings.push({x:p.x,y:p.y,t:0});
+boosterBlast(t.r,t.c,1);
+addScore(200);
+updateHUD();
+if(Snd.on)Snd.mega();
+applyGravity();
+i++;
+setTimeout(hit,350);};
+setTimeout(hit,1200);
+} 
   function gameOver(){
   if(over)return;
   over=true;busy=true;clearSave();
@@ -2679,7 +2806,14 @@ const rr2=cell*.46+Math.sin(t*7)*cell*.02;
 ctx.strokeStyle=`rgba(255,214,107,${.7+.3*Math.sin(t*7)})`;
 ctx.lineWidth=3;ctx.shadowColor='#ffd66b';ctx.shadowBlur=14;
 rr(ctx,p.x-rr2,p.y-rr2,rr2*2,rr2*2,cell*.18);ctx.stroke();ctx.shadowBlur=0;}
-if(hammerAim){ctx.strokeStyle=`rgba(255,140,80,${.5+.3*Math.sin(t*6)})`;
+if(dynAim){
+dynAim=false;
+hidePlate();
+dynStrike(r,c);
+updateBoosterUI();
+return;
+}
+  if(hammerAim){ctx.strokeStyle=`rgba(255,140,80,${.5+.3*Math.sin(t*6)})`;
 ctx.lineWidth=3;ctx.setLineDash([cell*.16,cell*.12]);
 rr(ctx,2,2,boardPx-4,boardPx-4,12);ctx.stroke();ctx.setLineDash([]);}
 if(swapAim){ctx.strokeStyle=`rgba(120,240,220,${.5+.3*Math.sin(t*6)})`;
@@ -2930,7 +3064,15 @@ else{
 if(timeLeft<=HINT_COST_TIME+2){Snd.bad();popup(boardPx/2,boardPx/2,'Мало времени',false,'#ff8b8b');return;}
 timeLeft-=HINT_COST_TIME;popup(boardPx/2,boardPx/2,'−'+HINT_COST_TIME+' с',true,'#ff8b8b');}}
 hintPair=pair;Snd.tick();updateHUD();});
-$('#btnHam').addEventListener('click',()=>{
+$('#btnDyn').addEventListener('click',()=>{
+if(over||busy||!started||isZen())return;
+if(!window.InvAPI||InvAPI.inv('dyn')<=0){showToast('🧨 Динамита нет: загляни в магазин');return;}
+dynAim=true;
+showPlate('🧨','Динамит','Выбери клетку на поле — прогремит взрыв 3×3!');
+if(Snd.on){Snd.init();Snd.tick();}
+});
+$('#btnGnom').addEventListener('click',()=>gnomStrike());
+  $('#btnHam').addEventListener('click',()=>{
 if(!started||over||busy)return;Snd.init();
 if(ham<=0){Snd.bad();return;}
 hammerAim=!hammerAim;swapAim=false;swapFirst=null;updateBoosterUI();
@@ -3113,6 +3255,7 @@ const NEWS=[
 {id:'shop',ico:'🛒',t:'Магазин бустеров',d:'Инвентарь → «Магазин»: трать монеты на молоты, часики и обмен.'},
 {id:'themes',ico:'🎨',t:'Темы штрека',d:'Пять тем: авто по уровням или вручную в настройках.'},
 {id:'lowperf',ico:'⚡',t:'Режим слабого устройства',d:'Меньше частиц и blur для старых телефонов: Настройки → «Слабое устройство».'},
+{id:'boost2',ico:'🧨',t:'Бустеры: Динамит и Гном',d:'🧨 Динамит — взрыв 3×3 куда укажешь. 💣 Гном-подрывник — бьёт по угрозам рудника.'},
 {id:'rescue',ico:'🛟',t:'Спасение забега',d:'При поражении — продолжение или переигровка уровня за монеты. До 3 раз за забег.'},
 ];
 function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
@@ -3395,7 +3538,7 @@ if(dvL)dvL.addEventListener('click',()=>{
 const dvR=document.getElementById('devReset');
 if(dvR)dvR.addEventListener('click',()=>{
   if(!confirm('Сбросить весь прогресс и localStorage?'))return;
- ['sv-save-v13','sv-best-classic','sv-best-time','sv-best-zen','sv-lb','sv-lbq','sv-nick-done','sv-seen-cols','sv-seen-fire','sv-seen-poison','sv-seen-cham','sv-chests','sv-coins','sv-active-skin','sv-stats-v1','sv-daily-v1','sv-lowperf','sv-theme','sv-news-seen','sv-news-init'].forEach(k=>store.del(k));
+ ['sv-save-v13','sv-best-classic','sv-best-time','sv-best-zen','sv-lb','sv-lbq','sv-nick-done','sv-seen-cols','sv-seen-fire','sv-seen-poison','sv-seen-cham','sv-chests','sv-coins','sv-active-skin','sv-stats-v1','sv-daily-v1','sv-lowperf','sv-theme','sv-news-seen','sv-news-init','sv-inv-dyn','sv-inv-gnom'].forEach(k=>store.del(k));
   location.reload();
 });
 (function dust(){
@@ -3498,7 +3641,7 @@ requestAnimationFrame(frame);
 var invStore={get:function(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set:function(k,v){localStorage.setItem(k,v)}};
 var invChests=JSON.parse(invStore.get('sv-chests','[]'))||[];
 var invCoins=parseInt(invStore.get('sv-coins','0'))||0;
-function saveInv(){invStore.set('sv-chests',JSON.stringify(invChests));invStore.set('sv-coins',String(invCoins));}
+function saveInv(){invStore.set('sv-chests',JSON.stringify(invChests));invStore.set('sv-coins',String(invCoins));invStore.set('sv-inv-dyn',String(invDyn));invStore.set('sv-inv-gnom',String(invGnom));}
 function updateBadge(){var btn=document.getElementById('btnInvGame');if(!btn)return;var count=invChests.filter(function(c){return !c.opened;}).length;var badge=btn.querySelector('.badge');if(count>0){if(!badge){badge=document.createElement('span');badge.className='badge';badge.style.cssText='position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 5px;border-radius:99px;background:#ffd66b;color:#06202c;font-size:11px;font-weight:700;display:grid;place-items:center;';btn.style.position='relative';btn.appendChild(badge);}badge.textContent=count;}else if(badge){badge.remove();}}
 function showInv(){
 var ov=document.createElement('div');
@@ -3575,7 +3718,9 @@ else {
       { id:'ham',  icon:'⛏',  name:'Молот',  price:6000 },
       { id:'frz',  icon:'⏳',  name:'Часики', price:6000 },
       { id:'swap', icon:'🔄',  name:'Обмен',  price:5000 },
-      { id:'undo', icon:'↩️',  name:'Отмена', price:5000 }
+      { id:'undo', icon:'↩️', name:'Отмена',    price:5000 },
+      { id:'dyn',  icon:'🧨', name:'Динамит',   price:8000 },
+      { id:'gnom', icon:'💣', name:'Гном-подрывник', price:12000 }
     ];
     var inGame2 = (typeof started !== 'undefined') && started && !over;
     for(var j=0;j<items.length;j++){
@@ -3585,7 +3730,10 @@ else {
       if(it.id === 'frz')  currentCount = inGame2 ? frz   : invFrz;
       if(it.id === 'swap') currentCount = inGame2 ? swapB : invSwap;
       if(it.id === 'undo') currentCount = inGame2 ? undoB : invUndo;
-      var isFull = currentCount >= BOOST_MAX;
+      if(it.id === 'dyn')  currentCount = invDyn;
+      if(it.id === 'gnom') currentCount = invGnom;
+      var capNow = (it.id === 'dyn' || it.id === 'gnom') ? 2 : BOOST_MAX;
+      var isFull = currentCount >= capNow;
       var btnText, btnBg, btnColor;
       if(isFull){ btnText = 'Максимум'; btnBg = '#2a3a46'; btnColor = '#5f87a0'; }
       else if(invCoins < it.price){ btnText = 'Мало'; btnBg = '#2a3a46'; btnColor = '#5f87a0'; }
@@ -3626,6 +3774,10 @@ if(tabShop)     tabShop.onclick     = function(){ tab = 2; render(); };
         if(typeof Snd !== 'undefined' && Snd.bad) Snd.bad();
         return;
       }
+        if((id === 'dyn' && invDyn >= 2) || (id === 'gnom' && invGnom >= 2)){
+      if(typeof Snd !== 'undefined' && Snd.bad) Snd.bad();
+      return;
+    }
     invCoins -= price;
 if(started && !over){
     // Игра идёт — начисляем сразу в бой
@@ -3640,8 +3792,10 @@ if(started && !over){
     if(id === 'frz'){  invFrz++;  store.set('sv-inv-frz', invFrz); }
     if(id === 'swap'){ invSwap++; store.set('sv-inv-swap', invSwap); }
     if(id === 'undo'){ invUndo++; store.set('sv-inv-undo', invUndo); }
-}
-saveInv();
+    }
+    if(id === 'dyn'){ invDyn++; store.set('sv-inv-dyn', invDyn); }
+    if(id === 'gnom'){ invGnom++; store.set('sv-inv-gnom', invGnom); }
+    saveInv();
 if(typeof Snd !== 'undefined' && Snd.spawn) Snd.spawn();
 render();
     };
@@ -3657,10 +3811,25 @@ setTimeout(function(){ov.classList.add('on');},10);
 }
 function showReward(type,coins){
 if(typeof Snd !== 'undefined' && Snd.on && coins > 0){ Snd.init(); Snd.coins(); }
+if(type==='gold'&&coins>0&&Math.random()<0.10&&window.InvAPI&&InvAPI.giveGnom&&InvAPI.giveGnom()){showToast('💣 Гном-подрывник из золотого сундука!');}
 
   var ov=document.createElement('div');ov.className='overlay';var icon=type==='gold'?'🏆':type==='silver'?'🥈':'🥉';if(coins===0){ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">'+(CHEST_RU[type]||'')+' сундук получен!</h3><p style="color:#bfe6ff;font-size:16px">Открой его в инвентаре</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">OK</button></div>';}else{ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">'+(CHEST_RU[type]||'')+' сундук открыт!</h3><p style="color:#ffd66b;font-size:18px">💰 +'+coins+' монет</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">Забрать</button></div>';}document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);document.getElementById('btnX').onclick=function(){ov.remove();};}
 function applySkin(skinId){var skins={classic:{frameA:'#143249',frameB:'#0b1d2c'},emerald:{frameA:'#1a4a3a',frameB:'#0d2c22'},ruby:{frameA:'#4a1a2a',frameB:'#2c0d1a'},amethyst:{frameA:'#3a1a4a',frameB:'#1f0d2c'}};var s=skins[skinId];if(!s)return;document.body.style.setProperty('--frameA',s.frameA);document.body.style.setProperty('--frameB',s.frameB);invStore.set('sv-active-skin',skinId);}
-window.InvAPI={coins:function(){return invCoins;},addCoins:function(n){invCoins+=n;saveInv();},addChest:function(type){invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();}};
+window.InvAPI={
+coins:function(){return invCoins;},
+addCoins:function(n){invCoins+=n;saveInv();},
+addChest:function(type){invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();},
+inv:function(k){return k==='ham'?invHam:k==='frz'?invFrz:k==='swap'?invSwap:k==='undo'?invUndo:k==='dyn'?invDyn:k==='gnom'?invGnom:0;},
+spend:function(k){
+if(k==='ham'&&invHam>0){invHam--;saveInv();return true;}
+if(k==='frz'&&invFrz>0){invFrz--;saveInv();return true;}
+if(k==='swap'&&invSwap>0){invSwap--;saveInv();return true;}
+if(k==='undo'&&invUndo>0){invUndo--;saveInv();return true;}
+if(k==='dyn'&&invDyn>0){invDyn--;saveInv();return true;}
+if(k==='gnom'&&invGnom>0){invGnom--;saveInv();return true;}
+return false;},
+giveGnom:function(){if(invGnom>=2)return false;invGnom++;saveInv();updateBadge();return true;}
+};
   window._onLevelComplete=function(completedLevel){if(completedLevel<1)return;var roll=Math.random();var type=null;if(roll<0.05)type='gold';else if(roll<0.15)type='silver';else if(roll<0.40)type='bronze';if(!type)return;invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();setTimeout(function(){showReward(type,0);},1500);};
 // скин при старте не применяем: его инлайн-цвета перекрывали темы
 
