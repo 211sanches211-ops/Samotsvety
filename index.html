@@ -2408,6 +2408,7 @@ if(!InvAPI.spend('gnom'))return;
 busy=true;
 updateBoosterUI();
 gnomePeekShow();
+setTimeout(gnomePeekHide, 5000);
 setTimeout(()=>{showBanner('🧨 Гном-подрывник за работой!','teal');},900);
 let i=0;
 const hit=()=>{
@@ -3070,6 +3071,7 @@ if(timeLeft<=HINT_COST_TIME+2){Snd.bad();popup(boardPx/2,boardPx/2,'Мало в�
 timeLeft-=HINT_COST_TIME;popup(boardPx/2,boardPx/2,'−'+HINT_COST_TIME+' с',true,'#ff8b8b');}}
 hintPair=pair;Snd.tick();updateHUD();});
 $('#btnDyn').addEventListener('click',()=>{
+  gnomePeekHide();
 if(over||busy||!started||isZen())return;
 if(!window.InvAPI||InvAPI.inv('dyn')<=0){showToast('🧨 Динамита нет: загляни в магазин');return;}
 dynAim=true;hammerAim=false;swapAim=false;
@@ -3089,20 +3091,24 @@ hammerAim=false;swapAim=false;dynAim=false;
 gnomStrike();
 });
   $('#btnHam').addEventListener('click',()=>{
+    gnomePeekHide();
 if(!started||over||busy)return;Snd.init();
 if(ham<=0){Snd.bad();return;}
 hammerAim=!hammerAim;swapAim=false;dynAim=false;swapFirst=null;updateBoosterUI();
 if(hammerAim){Snd.tick();popup(boardPx/2,boardPx*.5,'Тапни по цели',false,'#ffd66b');}});
 $('#btnFrz').addEventListener('click',()=>{
+  btnFrz
 if(!started||over)return;Snd.init();
 if(frz<=0){Snd.bad();return;}
 useFreeze();});
 $('#btnSwap').addEventListener('click',()=>{
+  btnFrz
 if(!started||over||busy)return;Snd.init();
 if(swapB<=0&&!isZen()){Snd.bad();return;}
 swapAim=!swapAim;swapFirst=null;hammerAim=false;dynAim=false;updateBoosterUI();
 if(swapAim){Snd.swapCast();popup(boardPx/2,boardPx*.5,'Выбери два камня',false,'#5ff2d6');}});
 $('#btnUndo').addEventListener('click',()=>{
+  btnFrz
 if(!started||over||busy)return;Snd.init();
 if(undoB<=0&&!isZen()){Snd.bad();return;}
 dynAim=false;hammerAim=false;swapAim=false;
