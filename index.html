@@ -326,6 +326,8 @@ body.lowperf .chip.zen{animation:none}
 #gnomePeek{position:absolute;left:50%;bottom:0;width:132px;transform:translate(-50%,112%);transition:transform .38s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
 #gnomePeek.on{transform:translate(-50%,0)}
 #gnomePeek.on.throw{transform:translate(-50%,4%) rotate(-7deg) scale(1.06);transition:transform .09s ease-out}
+  .board.aim{cursor:crosshair}
+.board.aim .cell:hover{outline:2px solid #ffe89a;outline-offset:-2px}
 @media(max-width:360px){#gnomePeek{width:110px}#gnomePeekBox{height:120px}}
 /* === стабильный HUD: очки не пляшут === */
 .stat{min-width:0}
@@ -2391,7 +2393,8 @@ gnomeImg.onload=()=>{gnomeImgOK=true;};
 gnomeImg.src='gnome.png';
 function gnomePeekShow(){
 const gp=$('#gnomePeek');if(!gp)return;
-if(gnomeImgOK)gp.classList.add('on');
+if(!gnomeImgOK){gp.setAttribute('src','data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><text x="40" y="62" text-anchor="middle" font-size="62">💣</text></svg>'));gp.classList.add('on');}
+else gp.classList.add('on');
 if(Snd.on){Snd.init();if(Snd.gnom)Snd.gnom();}
 }
 function gnomePeekHide(){const gp=$('#gnomePeek');if(gp)gp.classList.remove('on','throw');}
@@ -2808,7 +2811,7 @@ ctx.lineWidth=3;ctx.shadowColor='#ffd66b';ctx.shadowBlur=14;
 rr(ctx,p.x-rr2,p.y-rr2,rr2*2,rr2*2,cell*.18);ctx.stroke();ctx.shadowBlur=0;}
 if(dynAim){
 dynAim=false;
-hidePlate();
+board.classList.remove('aim');
 dynStrike(r,c);
 updateBoosterUI();
 return;
@@ -3068,9 +3071,16 @@ $('#btnDyn').addEventListener('click',()=>{
 if(over||busy||!started||isZen())return;
 if(!window.InvAPI||InvAPI.inv('dyn')<=0){showToast('🧨 Динамита нет: загляни в магазин');return;}
 dynAim=true;
-showPlate('🧨','Динамит','Выбери клетку на поле — прогремит взрыв 3×3!');
+board.classList.add('aim');
+showToast('🧨 Тапни по клетке');
 if(Snd.on){Snd.init();Snd.tick();}
 });
+  document.addEventListener('click',(ev)=>{
+if(!dynAim)return;
+if(ev.target.closest('#btnDyn'))return;
+if(ev.target.closest('.cell'))return;
+dynAim=false;board.classList.remove('aim');
+},true);
 $('#btnGnom').addEventListener('click',()=>gnomStrike());
   $('#btnHam').addEventListener('click',()=>{
 if(!started||over||busy)return;Snd.init();
