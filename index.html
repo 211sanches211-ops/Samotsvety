@@ -3094,18 +3094,21 @@ if(ham<=0){Snd.bad();return;}
 hammerAim=!hammerAim;swapAim=false;dynAim=false;swapFirst=null;updateBoosterUI();
 if(hammerAim){Snd.tick();popup(boardPx/2,boardPx*.5,'Тапни по цели',false,'#ffd66b');}});
 $('#btnFrz').addEventListener('click',()=>{
-  btnFrz
+  gnomePeekHide();
+
 if(!started||over)return;Snd.init();
 if(frz<=0){Snd.bad();return;}
 useFreeze();});
 $('#btnSwap').addEventListener('click',()=>{
-  btnFrz
+  gnomePeekHide();
+
 if(!started||over||busy)return;Snd.init();
 if(swapB<=0&&!isZen()){Snd.bad();return;}
 swapAim=!swapAim;swapFirst=null;hammerAim=false;dynAim=false;updateBoosterUI();
 if(swapAim){Snd.swapCast();popup(boardPx/2,boardPx*.5,'Выбери два камня',false,'#5ff2d6');}});
 $('#btnUndo').addEventListener('click',()=>{
-  btnFrz
+  gnomePeekHide();
+
 if(!started||over||busy)return;Snd.init();
 if(undoB<=0&&!isZen()){Snd.bad();return;}
 dynAim=false;hammerAim=false;swapAim=false;
