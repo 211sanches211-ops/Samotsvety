@@ -3740,7 +3740,7 @@ else {
       else { btnText = 'Купить'; btnBg = 'linear-gradient(#ffd66b,#ffb02e)'; btnColor = '#06202c'; }
       shopHtml += '<div style="display:flex;align-items:center;gap:10px;background:rgba(8,22,34,.6);border-radius:12px;padding:10px 12px;margin-bottom:8px;">';
       shopHtml += '<div style="font-size:22px">'+it.icon+'</div>';
-      shopHtml += '<div style="flex:1;text-align:left;font-size:13px;color:#cfe6f4;font-weight:700">'+it.name+' <span style="color:#7fa5bd;font-size:11px">'+currentCount+'/'+BOOST_MAX+'</span></div>';
+      shopHtml += '<div style="flex:1;text-align:left;font-size:13px;color:#cfe6f4;font-weight:700">'+it.name+' <span style="color:#7fa5bd;font-size:11px">'+currentCount+'/'+capNow+'</span></div>';
       shopHtml += '<div style="font-size:13px;color:#ffd66b;font-weight:800;font-family:Unbounded,sans-serif">'+it.price+'</div>';
       shopHtml += '<button class="buy-btn" data-id="'+it.id+'" data-price="'+it.price+'" data-full="'+(isFull?'1':'0')+'" style="padding:6px 12px;border-radius:10px;border:none;font-weight:800;font-size:12px;cursor:pointer;background:'+btnBg+';color:'+btnColor+'">'+btnText+'</button>';
       shopHtml += '</div>';
