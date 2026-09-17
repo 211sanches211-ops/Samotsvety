@@ -2980,6 +2980,7 @@ if(!started||busy||over)return;Snd.init();
 const pos=pick(e);if(!pos)return;
 hintPair=null;
 
+
 if(dynAim){dynAim=false;board.classList.remove('aim');dynStrike(pos.r,pos.c);updateBoosterUI();return;}
 if(hammerAim){hammerStrike(pos.r,pos.c);return;}
 if(swapAim){
