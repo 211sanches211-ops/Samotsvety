@@ -1,5 +1,5 @@
-const CACHE='samotsvety-v13';
-const SHELL=['./','./index.html','./game.js','./game2.js','./manifest.webmanifest','./icon.svg','./icon-512.png'];
+const CACHE='samotsvety-v14';
+const SHELL=['./','./index.html','./game.js','./game2.js','./manifest.webmanifest','./icon.svg','./icon-512.png','./gnome.png'];
 self.addEventListener('install',e=>{e.waitUntil((async()=>{const c=await caches.open(CACHE);
   await Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})));self.skipWaiting();})());});
 self.addEventListener('activate',e=>{e.waitUntil((async()=>{for(const k of await caches.keys())
