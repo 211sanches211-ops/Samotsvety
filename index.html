@@ -2072,6 +2072,7 @@ saveBest();dailyAdd('levels',1);
 confetti();Snd.levelup();buzz([20,40,20]);
 showToast('🎉 Уровень '+level+' пройден!');
 await wait(1250);if(id!==runId)return;
+if(moves>0&&!devCheat){await sugarCrush(id);if(id!==runId||over)return;saveBest();}
 level++;
 const kg=levelGoalKind(level);
 moves=kg==='clean'?25:MOVES_PER_LEVEL;
@@ -2359,7 +2360,58 @@ if(FIRE[a+','+b])delete FIRE[a+','+b];
 if(POISON[a+','+b]){delete POISON[a+','+b];delete POISON_AGE[a+','+b];}
 grid[a][b]=null;});
 }
-function dynStrike(r,c){
+function sugarBlast(r,c,kind){
+const set=new Set(),direct=new Set();
+const add=(rr,cc)=>{if(rr<0||cc<0||rr>=ROWS||cc>=COLS)return;if(COL[rr][cc]>0)return;const kk=key(rr,cc);
+if(ROCK[rr][cc]>0||ICE[rr][cc]>0){direct.add(kk);return;}set.add(kk);};
+if(kind==='bomb'){for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)add(r+dr,c+dc);}
+else if(kind==='line-h'){for(let cc=0;cc<COLS;cc++)add(r,cc);}
+else{for(let rr=0;rr<ROWS;rr++)add(rr,c);}
+const tr=expandWithSpecials(set,direct);
+if(tr)addScore(tr*200);
+direct.forEach(k=>{const[a,b]=k.split(',').map(Number);const p=cellXY(a,b);
+if(ROCK[a][b]>0){ROCK[a][b]=0;fxRings.push({x:p.x,y:p.y,t:0});}
+else if(ICE[a][b]>0){ICE[a][b]=Math.max(0,ICE[a][b]-1);const g=grid[a][b];if(g)g.iceT=.5;}});
+set.forEach(k=>{const[a,b]=k.split(',').map(Number);
+if(FIRE[a+','+b])delete FIRE[a+','+b];
+if(POISON[a+','+b]){delete POISON[a+','+b];delete POISON_AGE[a+','+b];}
+grid[a][b]=null;});
+return set.size+tr;}
+async function sugarCrush(id){
+const left=Math.min(moves,10);
+if(left<=0)return;
+showBanner('ФЕЙЕРВЕРК ЗА ХОДЫ!','teal');
+if(Snd.on){Snd.init();Snd.rush();}
+await wait(500);if(id!==runId)return;
+for(let i=0;i<left;i++){
+if(id!==runId||over)return;
+const cand=[];
+for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const g=grid[r][c];
+if(g&&!g.special&&ICE[r][c]===0&&COL[r][c]===0&&!g.falling)cand.push([r,c]);}
+if(!cand.length)break;
+const pick2=cand[irnd(cand.length)];
+const kind=i%3===0?'bomb':(i%3===1?'line-h':'line-v');
+const p=cellXY(pick2[0],pick2[1]);
+fxRings.push({x:p.x,y:p.y,t:0,teal:true});
+const n=sugarBlast(pick2[0],pick2[1],kind);
+const gn=addScore(n*60+100);
+popup(p.x,p.y,'🎆 +'+fmt(gn),false,'#ffe89a');
+shake(3);
+if(Snd.on)Snd.pop(i+1);
+updateHUD();
+applyGravity();
+await wait(240);}
+if(id!==runId||over)return;
+applyGravity();await waitFall(id);
+if(id!==runId)return;
+const coins=left*50;
+if(window.InvAPI)InvAPI.addCoins(coins);
+statAdd('coins',coins);
+showToast('🎆 Бонус за ходы: +'+fmt(coins)+' 💰');
+if(Snd.on){Snd.init();Snd.coins();}
+await wait(900);}
+
+  function dynStrike(r,c){
 if(!window.InvAPI||!InvAPI.spend('dyn'))return;
 const p=cellXY(r,c);
 popup(p.x,p.y,'🧨',true,'#ffe89a');
@@ -3280,6 +3332,7 @@ const NEWS=[
 {id:'lowperf',ico:'⚡',t:'Режим слабого устройства',d:'Меньше частиц и blur для старых телефонов: Настройки → «Слабое устройство».'},
 {id:'boost2',ico:'🧨',t:'Бустеры: Динамит и Гном',d:'🧨 Динамит — взрыв 3×3 куда укажешь. 💣 Гном-подрывник — бьёт по угрозам рудника.'},
 {id:'rescue',ico:'🛟',t:'Спасение забега',d:'При поражении — продолжение или переигровка уровня за монеты. До 3 раз за забег.'},
+  {id:'sugar',ico:'🎆',t:'Фейерверк за ходы',d:'Прошёл уровень с запасом ходов? Ходы превращаются в залпы спецкамней и монеты: +50 💰 за ход.'},
 ];
 function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
 function newsMarkSeen(ids){const s=new Set(newsSeen());ids.forEach(i=>s.add(i));store.set('sv-news-seen',JSON.stringify([...s]));}
