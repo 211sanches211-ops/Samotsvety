@@ -1179,7 +1179,7 @@ do{r=irnd(ROWS);c=irnd(COLS);guard++;}
 while(guard<80&&(FIRE[r+','+c]||POISON[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||!grid[r][c]||grid[r][c].special));
 if(guard>=80)return;
 if(kind==='fire')FIRE[r+','+c]=3;
-else if(kind==='poison'){POISON[r+','+c]=1;POISON_AGE[r+','+c]=0;}
+else if(kind==='poison'){if(createsRunAt(r,c))return;POISON[r+','+c]=1;POISON_AGE[r+','+c]=0;}
 else if(kind==='ice'){ICE[r][c]=1;const g=grid[r][c];if(g)g.iceT=.5;}
 else if(kind==='rock'){ROCK[r][c]=1;grid[r][c]=null;applyGravity();}}
 function survWaveSpawn(w){
@@ -1424,7 +1424,7 @@ const skipTutorial = !tutorialOn();
     if(!skipTutorial&&l>=9&&!seenPoison&&levelHazards(l).poison>0){
         seenPoison=true;
         plates.push({ico:'☠',title:'Новое: ЯД',
-            text:'Зелёный камень испускает ядовитый пар. Расползается, если не убирать.'});
+           text:'Ядовитый камень нельзя двигать, но он входит в линии своего цвета: собери совпадение через него — и яд очистится. Расползается, если не убирать.'});
     }
    if(!skipTutorial&&l>=12&&!seenCham){
         seenCham=true;
@@ -1479,7 +1479,7 @@ function spawnPoison(l){
     for(let i=0;i<num;i++){
         let r,c,guard=0;
         do{r=irnd(ROWS);c=irnd(COLS);guard++;}
-        while((FIRE[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||grid[r][c]?.special||POISON[r+','+c])&&guard<100);
+        while((FIRE[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||grid[r][c]?.special||POISON[r+','+c]||createsRunAt(r,c))&&guard<100);
         if(guard<100){POISON[r+','+c]=1;POISON_AGE[r+','+c]=0;}
     }
 }
@@ -1500,6 +1500,7 @@ if(nr<0||nc<0||nr>=ROWS||nc>=COLS)continue;
 const nk=nr+','+nc;
 if(POISON[nk]||FIRE[nk]||ICE[nr][nc]>0||ROCK[nr][nc]>0||COL[nr][nc]>0)continue;
 if(!grid[nr]||!grid[nr][nc])continue;
+if(createsRunAt(nr,nc))continue;
 POISON[nk]=1;POISON_AGE[nk]=0;
 const p=cellXY(nr,nc);
 for(let i=0;i<6;i++){const a=rnd(Math.PI*2),sp=rnd(1,3)*cell;
@@ -1512,7 +1513,7 @@ if(spread){showToast('☠ Яд расползается!');Snd.iceCrack();update
 if(poisonCount()>=(ROWS*COLS)/2){showBanner('ЯД ПОБЕДИЛ!','bad');gameOver();}}
 function findMatchRuns(){
 const runs=[];
-const blocked=(r,c)=>!grid[r][c]||ICE[r][c]>0||COL[r][c]>0||FIRE[r+','+c]||POISON[r+','+c];
+const blocked=(r,c)=>!grid[r][c]||ICE[r][c]>0||COL[r][c]>0||FIRE[r+','+c];
 for(let r=0;r<ROWS;r++){let c=0;while(c<COLS){
 if(blocked(r,c)){c++;continue}const t=grid[r][c].t;let e=c+1;
 while(e<COLS&&!blocked(r,e)&&grid[r][e].t===t)e++;
@@ -1791,6 +1792,7 @@ set.forEach(k=>{const[r,c]=k.split(',').map(Number);const g=grid[r][c];
 if(g){g.pop=.0001;g.popDelay=rnd(0,90);}});
 await wait(POP_MS+40);if(id!==runId)return;
 set.forEach(k=>{const[r,c]=k.split(',').map(Number);
+if(POISON[k]){delete POISON[k];delete POISON_AGE[k];}
 if(!spawnKeys.has(key(r,c)))grid[r][c]=null;});
 for(const s of spawns){const g=newGem(s.t,s.r,s.c);g.special=s.special;g.scale=0;
 grid[s.r][s.c]=g;addTween(280,easeOutBack,k=>g.scale=k,null);}
@@ -2637,8 +2639,8 @@ const w=s*.95;
 ctx.save();
 const pulse=.75+.25*Math.sin(t*3);
 const grad=ctx.createRadialGradient(0,0,w*.15,0,0,w*.62);
-grad.addColorStop(0,`rgba(90,220,90,${.75*pulse})`);
-grad.addColorStop(.55,`rgba(40,140,40,${.55*pulse})`);
+grad.addColorStop(0,`rgba(90,220,90,${.42*pulse})`);
+grad.addColorStop(.55,`rgba(40,140,40,${.30*pulse})`);
 grad.addColorStop(1,'rgba(10,60,10,0)');
 ctx.fillStyle=grad;
 ctx.beginPath();ctx.arc(0,0,w*.62,0,7);ctx.fill();
@@ -3301,6 +3303,7 @@ const NEWS=[
 {id:'lowperf',ico:'⚡',t:'Режим слабого устройства',d:'Меньше частиц и blur для старых телефонов: Настройки → «Слабое устройство».'},
 {id:'boost2',ico:'🧨',t:'Бустеры: Динамит и Гном',d:'🧨 Динамит — взрыв 3×3 куда укажешь. 💣 Гном-подрывник — бьёт по угрозам рудника.'},
 {id:'rescue',ico:'🛟',t:'Спасение забега',d:'При поражении — продолжение или переигровка уровня за монеты. До 3 раз за забег.'},
+{id:'poison2',ico:'☠',t:'Яд теперь в комбинациях',d:'Ядовитый камень нельзя двигать, но он входит в линии своего цвета — собирай совпадения через него, чтобы очищать яд.'},  
 {id:'movebonus',ico:'🎯',t:'Бонус за ходы',d:'Прошёл уровень с запасом ходов? Каждый неиспользованный ход даёт +100 очков и +20 монет.'},
 ];
 function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
