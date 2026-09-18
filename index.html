@@ -2011,7 +2011,7 @@ for(const fk of Object.keys(FIRE)){
 FIRE[fk]--;
 if(FIRE[fk]<=0)boom.push(fk);
 }
-if(moveCount%4===0){
+if(moveCount%5===0){
 const fkeys=Object.keys(FIRE);
 if(fkeys.length){
 const fk=fkeys[irnd(fkeys.length)];
