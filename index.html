@@ -1525,7 +1525,7 @@ function spawnPoison(l){
     for(let i=0;i<num;i++){
         let r,c,guard=0;
         do{r=irnd(ROWS);c=irnd(COLS);guard++;}
-        while((FIRE[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||grid[r][c]?.special||POISON[r+','+c]||createsRunAt(r,c))&&guard<100);
+        while((FIRE[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||grid[r][c]?.special||grid[r][c]?.crate||createsRunAt(r,c))&&guard<100);
         if(guard<100){POISON[r+','+c]=1;POISON_AGE[r+','+c]=0;}
     }
 }
@@ -1585,7 +1585,7 @@ if(spread){showToast('☠ Яд расползается!');Snd.iceCrack();update
 if(poisonCount()>=(ROWS*COLS)/2){showBanner('ЯД ПОБЕДИЛ!','bad');gameOver();}}
 function findMatchRuns(){
 const runs=[];
-const blocked=(r,c)=>!grid[r][c]||ICE[r][c]>0||COL[r][c]>0||FIRE[r+','+c]||POISON[r+','+c]||grid[r][c].crate;
+const blocked=(r,c)=>!grid[r][c]||ICE[r][c]>0||COL[r][c]>0||FIRE[r+','+c]||grid[r][c].crate;
 for(let r=0;r<ROWS;r++){let c=0;while(c<COLS){
 if(blocked(r,c)){c++;continue}const t=grid[r][c].t;let e=c+1;
 while(e<COLS&&!blocked(r,e)&&grid[r][e].t===t)e++;
