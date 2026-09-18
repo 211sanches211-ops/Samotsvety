@@ -248,6 +248,7 @@ box-shadow:0 18px 50px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,214,107,.35), 0
 font-family:'Unbounded',system-ui,sans-serif;font-weight:700;font-size:clamp(14px,3.4vw,21px);color:#ffd66b;white-space:nowrap;
 text-shadow:0 2px 0 #7a4c00;}
 .toast.show{animation:toastIn 1.25s cubic-bezier(.2,1.4,.3,1) forwards}
+.toast.show.long{animation-duration:2.8s}
 @keyframes toastIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}
 14%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}
 26%{transform:translate(-50%,-50%) scale(1)}
@@ -483,7 +484,7 @@ body.lowperf .chip.zen{animation:none}
 <div class="card">
 <h2 class="card-title" style="font-size:clamp(20px,5vw,28px)">Об игре</h2>
 <div class="about-lines">
-<span>version 0.9beta · build 16-0917</span>
+<span>version 0.9beta · build 16-0918</span>
 <span>Разработчик a1ex.mart</span>
 <span>2026</span>
 </div>
@@ -2078,6 +2079,7 @@ popup(boardPx/2,boardPx*.4,'+'+fmt(g)+' за ходы',true,'#ffe89a');
 if(window.InvAPI)InvAPI.addCoins(coins);
 statAdd('coins',coins);
 showToast('🎯 Бонус за '+left+' ходов: +'+fmt(g)+' очков, +'+coins+' 💰');
+$('#toast').classList.add('long');
 if(Snd.on){Snd.init();Snd.coins();}
 }
 async function levelUp(id){
@@ -2085,7 +2087,7 @@ saveBest();dailyAdd('levels',1);
 confetti();Snd.levelup();buzz([20,40,20]);
 showToast('🎉 Уровень '+level+' пройден!');
 await wait(1250);if(id!==runId)return;
-if(moves>0&&!devCheat){moveBonus();saveBest();await wait(700);if(id!==runId)return;}
+if(moves>0&&!devCheat){moveBonus();saveBest();await wait(3000);if(id!==runId)return;}
 level++;
 const kg=levelGoalKind(level);
 moves=kg==='clean'?25:MOVES_PER_LEVEL;
