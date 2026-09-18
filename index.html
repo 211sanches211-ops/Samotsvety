@@ -1419,7 +1419,7 @@ const skipTutorial = !tutorialOn();
    if(!skipTutorial&&l>=7&&!seenFire&&levelHazards(l).fire>0){
         seenFire=true;
         plates.push({ico:'🔥',title:'Новое: ОГОНЬ',
-            text:'Горящая клетка взрывается через 3 хода.'});
+text:'Горящая клетка взрывается через 3 хода: Возможны цепные реакции. Туши огонь совпадениями рядом, молотом, динамитом или гномом.'});
     }
     if(!skipTutorial&&l>=9&&!seenPoison&&levelHazards(l).poison>0){
         seenPoison=true;
@@ -2029,13 +2029,12 @@ showToast('🔥 Огонь расползается!');
 for(const fk of boom){
 delete FIRE[fk];
 const[fr,fc]=fk.split(',').map(Number);
-const gems=new Set(),direct=new Set();
+const gems=new Set();
 const cells=[[fr,fc],[fr-1,fc],[fr+1,fc],[fr,fc-1],[fr,fc+1]];
 for(const[r,c]of cells){
 if(r<0||c<0||r>=ROWS||c>=COLS)continue;
-if(COL[r][c]>0)continue;
-if(ROCK[r][c]>0||ICE[r][c]>0)direct.add(r+','+c);
-else if(grid[r]&&grid[r][c])gems.add(r+','+c);
+if(COL[r][c]>0||ROCK[r][c]>0||ICE[r][c]>0)continue;
+if(grid[r]&&grid[r][c])gems.add(r+','+c);
 }
 const p=cellXY(fr,fc);
 showBanner('ВСПЫШКА!','bad');
@@ -2046,13 +2045,22 @@ for(let i=0;i<25;i++){
 const a=rnd(Math.PI*2),sp=rnd(1,5)*cell;
 particles.push({x:p.x,y:p.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,gr:cell*7,t:0,ttl:rnd(.4,.9),col:i%2?'#ff7a1a':'#ffd66b',sz:rnd(.06,.14)*cell,spark:true});
 }
-damageObstacles(gems,direct);
+const fireBefore=Object.keys(FIRE);
 countColorGoal(gems);
-if(goal&&goal.type==='boss')hitGolem(gems.size);
 const set=new Set([...gems]);
 await destroySet(set,id,[]);
+const eligible=(r,c)=>grid[r]&&grid[r][c]&&!grid[r][c].special&&ICE[r][c]===0&&ROCK[r][c]===0&&COL[r][c]===0&&!POISON[r+','+c]&&!FIRE[r+','+c];
+for(const k of fireBefore){
+if(FIRE[k])continue;
+const[r,c]=k.split(',').map(Number);
+if(r>=0&&c>=0&&r<ROWS&&c<COLS&&eligible(r,c))FIRE[k]=3;
+}
+if(eligible(fr,fc)){
+FIRE[fr+','+fc]=3;
+popup(p.x,p.y,'🔥 не гаснет!',false,'#ff8b5d');
+}
 for(const[r,c]of cells){
-if(r>=0&&c>=0&&r<ROWS&&c<COLS&&!FIRE[r+','+c]&&grid[r]&&grid[r][c]&&!grid[r][c].special&&ICE[r][c]===0&&ROCK[r][c]===0&&COL[r][c]===0&&!POISON[r+','+c]){
+if(r>=0&&c>=0&&r<ROWS&&c<COLS&&eligible(r,c)){
 if(Math.random()<0.4){
 FIRE[r+','+c]=3;
 showToast('🔥 Цепная реакция!');
@@ -3304,6 +3312,7 @@ const NEWS=[
 {id:'boost2',ico:'🧨',t:'Бустеры: Динамит и Гном',d:'🧨 Динамит — взрыв 3×3 куда укажешь. 💣 Гном-подрывник — бьёт по угрозам рудника.'},
 {id:'rescue',ico:'🛟',t:'Спасение забега',d:'При поражении — продолжение или переигровка уровня за монеты. До 3 раз за забег.'},
 {id:'poison2',ico:'☠',t:'Яд теперь в комбинациях',d:'Ядовитый камень нельзя двигать, но он входит в линии своего цвета — собирай совпадения через него, чтобы очищать яд.'},  
+{id:'fire2',ico:'🔥',t:'Огонь больше не гаснет сам',d:'После вспышки клетка снова горит, цепные реакции 40% остались. Взрыв огня не чистит лёд, валуны и яд за тебя — угрозу убирай только своими ходами.'},
 {id:'movebonus',ico:'🎯',t:'Бонус за ходы',d:'Прошёл уровень с запасом ходов? Каждый неиспользованный ход даёт +100 очков и +20 монет.'},
 ];
 function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
