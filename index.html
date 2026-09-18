@@ -1153,11 +1153,6 @@ return MOVES_PER_LEVEL;}
   function crateNeed(l){
 if(l<=20)return (LEVEL_CONFIG[l]&&LEVEL_CONFIG[l].crate)||1;
 return l>=44?4:(l>=29?3:2);}
-function movesForLevel(l){const kg=levelGoalKind(l);
-if(kg==='clean')return 25;
-if(kg==='crate')return MOVES_PER_LEVEL+2*crateNeed(l);
-return MOVES_PER_LEVEL;}
-return MOVES_PER_LEVEL;}
 function levelGoalKind(l){
     if(l<=20) return LEVEL_CONFIG[l].goal;
     if(l%10===0) return 'boss';
