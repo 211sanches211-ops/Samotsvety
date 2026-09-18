@@ -2011,8 +2011,10 @@ for(const fk of Object.keys(FIRE)){
 FIRE[fk]--;
 if(FIRE[fk]<=0)boom.push(fk);
 }
-if(moveCount%2===0){
-for(const fk of Object.keys(FIRE)){
+if(moveCount%4===0){
+const fkeys=Object.keys(FIRE);
+if(fkeys.length){
+const fk=fkeys[irnd(fkeys.length)];
 const[fr,fc]=fk.split(',').map(Number);
 const nb=[[fr-1,fc],[fr+1,fc],[fr,fc-1],[fr,fc+1]].filter(([r,c])=>{
 if(r<0||c<0||r>=ROWS||c>=COLS)return false;
