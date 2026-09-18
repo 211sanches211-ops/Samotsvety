@@ -1115,13 +1115,13 @@ const LEVEL_CONFIG = {
     10: { ice:0, rock:0, fire:0, poison:0, col:0, goal:'boss'   },
     11: { ice:0, rock:3, fire:0, poison:2, col:0, goal:'clean'  },
     12: { ice:3, rock:0, fire:1, poison:0, col:0, goal:'clean'  },
-    13: { ice:0, rock:0, fire:0, poison:0, col:0, goal:'crate' },
-    14: { ice:0, rock:0, fire:0, poison:0, col:2, goal:'score'  },
-    15: { ice:0, rock:0, fire:1, poison:1, col:0, goal:'score'  },
-    16: { ice:4, rock:0, fire:0, poison:0, col:0, goal:'color'  },
-    17: { ice:0, rock:3, fire:1, poison:0, col:0, goal:'clean'  },
-    18: { ice:3, rock:0, fire:0, poison:0, col:2, goal:'color'  },
-    19: { ice:0, rock:0, fire:1, poison:1, col:0, goal:'score'  },
+    13: { ice:0, rock:0, fire:0, poison:0, col:0, crate:2, goal:'crate' },
+14: { ice:0, rock:0, fire:0, poison:0, col:2, goal:'score'  },
+15: { ice:0, rock:0, fire:1, poison:0, col:0, crate:3, goal:'crate' },
+16: { ice:2, rock:0, fire:0, poison:0, col:2, goal:'color'  },
+17: { ice:0, rock:3, fire:1, poison:0, col:0, goal:'clean'  },
+18: { ice:3, rock:0, fire:0, poison:0, col:2, goal:'color'  },
+19: { ice:0, rock:0, fire:0, poison:1, col:0, crate:4, goal:'crate' },
     20: { ice:0, rock:0, fire:0, poison:0, col:0, goal:'boss'   },
 };
 function levelHazards(l){
@@ -1146,6 +1146,12 @@ function levelHazards(l){
     }
     return out;
 }
+ function crateNeed(l){
+if(l<=20)return (LEVEL_CONFIG[l]&&LEVEL_CONFIG[l].crate)||1;
+return l>=44?4:(l>=29?3:2);}
+function movesForLevel(l){const kg=levelGoalKind(l);
+if(kg==='clean')return 25;
+return MOVES_PER_LEVEL;}
 function levelGoalKind(l){
     if(l<=20) return LEVEL_CONFIG[l].goal;
     if(l%10===0) return 'boss';
@@ -1286,7 +1292,7 @@ function makeGoal(l){
     if(k==='boss')    return {type:'boss', need:60+l*4, done:0, counted:false};
     if(k==='special') return {type:'special', need:2+Math.floor(l/7), done:0};
     if(k==='clean')   return {type:'clean', needIce:0, needRock:0, doneIce:0, doneRock:0, ready:false};
-  if(k==='crate')   return {type:'crate', need:(l>=34?2:1), done:0};
+  if(k==='crate')   return {type:'crate', need:crateNeed(l), done:0};
     if(k==='color'){
         let c1=irnd(TYPES), c2;
         do { c2=irnd(TYPES); } while (c2===c1);
@@ -1489,7 +1495,7 @@ text:'Ящик нельзя двигать и бить. Собирай комб�
     }
       else if(goal&&goal.type==='crate'){
 plates.push({ico:'📦',title:'Доставка',
-text:'Ящик падает вместе с камнями. Расчищай совпадения под ним — и он опустится. Доставь ящик на нижний ряд!'});
+text:'Ящики падают вместе с камнями. Расчищай совпадения под ними — и они опустятся. Доставь все ('+goal.need+') на нижний ряд!'});
 }
     else if(goal&&goal.type==='score'){
         plates.push({ico:'⭐',title:'Цель уровня',
@@ -2174,7 +2180,7 @@ await wait(1250);if(id!==runId)return;
 if(moves>0&&!devCheat){moveBonus();saveBest();await wait(3000);if(id!==runId)return;}
 level++;
 const kg=levelGoalKind(level);
-moves=kg==='clean'?25:MOVES_PER_LEVEL;
+moves=movesForLevel(level);
 levelStartScore=score;movesInLevel=0;gateWarned=false;moveCount=0;
 FIRE={};POISON={};POISON_AGE={};
 COL=makeCols(level);
@@ -2421,7 +2427,7 @@ nextBonusAt=lvlSnap.nextBonusAt;
 }
 score=levelStartScore;dispScore=score;lastShown=-1;
 lastMove=null;
-moves=levelGoalKind(level)==='clean'?25:MOVES_PER_LEVEL;
+moves=movesForLevel(level);
 movesInLevel=0;gateWarned=false;moveCount=0;
 FIRE={};POISON={};POISON_AGE={};
 COL=makeCols(level);
@@ -3581,7 +3587,7 @@ function devJumpToLv(n){
   setTimeout(()=>{
     level=n;
     const kg=levelGoalKind(level);
-    moves=kg==='clean'?25:MOVES_PER_LEVEL;
+   moves=movesForLevel(level);
     levelStartScore=score;
     movesInLevel=0;gateWarned=false;moveCount=0;
     FIRE={};POISON={};POISON_AGE={};
