@@ -1525,12 +1525,14 @@ function spawnPoison(l){
 }
   function newCrate(r,c){const g=newGem(-1,r,c);g.crate=true;return g;}
 function spawnCrates(n){
+if(!grid||grid.length!==ROWS)return;
 if(mode!=='classic'||!n)return;
 const cols=[];
 for(let c=0;c<COLS;c++)if(COL[0][c]===0)cols.push(c);
 for(let i=cols.length-1;i>0;i--){const j=irnd(i+1);[cols[i],cols[j]]=[cols[j],cols[i]];}
 for(let i=0;i<n&&i<cols.length;i++){grid[0][cols[i]]=newCrate(0,cols[i]);}}
 function collectCrates(){
+if(!grid||grid.length!==ROWS)return;
 for(let c=0;c<COLS;c++){
 const g=grid[ROWS-1][c];
 if(g&&g.crate){
@@ -1746,8 +1748,8 @@ grid[rr2][c]=g;}
 r=top-1;}}
 for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const g=grid[r][c];if(!g)continue;
 const p=cellXY(g.r,g.c);g.x=p.x;
-if(g.y<p.y-.5){g.falling=true;g.bounced=false}else if(!g.falling){g.y=p.y;g.vy=0}}}
-collectCrates();
+if(g.y<p.y-.5){g.falling=true;g.bounced=false}else if(!g.falling){g.y=p.y;g.vy=0}}
+collectCrates();}
 function allSettled(){for(const row of grid)for(const g of row)if(g&&g.falling)return false;return true}
 function waitFall(id){return new Promise(res=>{fallRes={res,id}})}
 function expandWithSpecials(set,direct){
