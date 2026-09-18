@@ -2076,10 +2076,10 @@ if(left<=0)return;
 const pts=left*MOVE_BONUS_PTS;
 const coins=left*MOVE_BONUS_COINS;
 const g=addScore(pts);
-popup(boardPx/2,boardPx*.4,'+'+fmt(g)+' за ходы',true,'#ffe89a');
+popup(boardPx/2,boardPx*.4,'+'+fmt(g),true,'#ffe89a');
 if(window.InvAPI)InvAPI.addCoins(coins);
 statAdd('coins',coins);
-showToast('🎯 Бонус за оставшиеся ходы:\n'+left+' ходов = +'+fmt(g)+' очков, +'+coins+' 💰');
+showToast('🎯 Бонус за ходы\n+'+fmt(g)+' очков, +'+coins+' 💰');
 $('#toast').classList.add('long');
 if(Snd.on){Snd.init();Snd.coins();}
 }
