@@ -3413,6 +3413,8 @@ const rows=[
 ['📦 Сундуков открыто',fmt(STATS.chests||0)],
 ['💰 Монет заработано',fmt(STATS.coins||0)],
 ['🗿 Големов повержено',fmt(STATS.boss||0)],
+  ['🎰 Спинов в слоте',fmt(STATS.spins||0)],
+
 ];
 $('#statsList').innerHTML=rows.map(r=>'<div class="setrow"><span style="flex:1;text-align:left">'+r[0]+'</span><b style="color:#ffd66b;font-family:Unbounded,sans-serif;font-size:14px">'+r[1]+'</b></div>').join('');
 }
@@ -3853,7 +3855,7 @@ var tab = 0;
 function render(){
   var html = '';
   html += '<div class="plate-card" style="max-width:370px;max-height:85vh;overflow-y:auto">';
-  html += '<h3 style="color:#ffd66b;margin-bottom:14px">💰 Монеты: '+invCoins+'</h3>';
+html += '<h3 id="invCoinsHdr" style="color:#ffd66b;margin-bottom:14px">💰 Монеты: '+invCoins+'</h3>';
  html += '<div style="display:flex;gap:8px;margin-bottom:14px">';
 html += '<button id="tabBoosters" class="btn ghost" style="flex:1;padding:8px;font-size:12px">🎁 Бустеры</button>';
 html += '<button id="tabChests" class="btn ghost" style="flex:1;padding:8px;font-size:12px">📦 Сундуки</button>';
@@ -3913,8 +3915,17 @@ if(typeof Snd !== 'undefined'){ Snd.init(); }
 }, 0);
 }
 else {
-    // Магазин (как было)
-    var shopHtml = '';
+var slotHtml='<div style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:12px;text-align:center">'+
+'<div style="font-family:Unbounded,sans-serif;font-weight:700;font-size:14px;color:#ffd66b;margin-bottom:8px">🎰 Шахта фортуны</div>'+
+'<div id="slotWin" style="position:relative;height:64px;overflow:hidden;border-radius:10px;background:#0a1c2b;box-shadow:inset 0 0 0 1px rgba(255,214,107,.25);margin-bottom:8px">'+
+'<div id="slotStrip" style="display:flex;position:absolute;left:0;top:0;height:64px"></div>'+
+'<div style="position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:#ffd66b;box-shadow:0 0 10px #ffd66b"></div></div>'+
+'<div id="slotInfo" style="font-size:11px;color:#7fa5bd;margin-bottom:8px"></div>'+
+'<div id="slotResult" style="font-size:13px;color:#ffe89a;font-weight:800;min-height:18px;margin-bottom:8px"></div>'+
+'<button id="btnSlotSpin" class="btn" style="width:100%"></button></div>';
+// Магазин (как было) + слот сверху
+var shopHtml = slotHtml;
+
     var items = [
       { id:'ham',  icon:'⛏',  name:'Молот',  price:6000 },
       { id:'frz',  icon:'⏳',  name:'Часики', price:6000 },
@@ -4002,15 +4013,111 @@ render();
     };
   }
   
+var spinBtn=ov.querySelector('#btnSlotSpin');
+if(spinBtn){slotPaint(ov);spinBtn.onclick=function(){slotSpin(ov);};}
   var closeBtn = ov.querySelector('#btnC');
-  if(closeBtn) closeBtn.onclick = function(){ ov.remove(); };
+if(closeBtn) closeBtn.onclick = function(){ ov.remove(); };
+
+
 }
 
 render();
 document.body.appendChild(ov);
 setTimeout(function(){ov.classList.add('on');},10);
 }
-function showReward(type,coins){
+// ==== ШАХТА ФОРТУНЫ (слот в магазине) ====
+function slotToday(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function slotPrice(){return invStore.get('sv-slot-day','')===slotToday()?2000:1000;}
+function slotPity(){return parseInt(invStore.get('sv-slot-pity','0'))||0;}
+var SLOT_TABLE=[
+{w:5000,ico:'💰',kind:'coins',min:400,max:1000},
+{w:2500,ico:'💰',kind:'coins',min:1500,max:1500},
+{w:1200,ico:'💰',kind:'coins',min:3000,max:3000},
+{w:700,ico:'🎁',kind:'booster'},
+{w:400,ico:'🥉',kind:'chest',chest:'bronze'},
+{w:150,ico:'💰',kind:'coins',min:6000,max:6000},
+{w:40,ico:'🥈',kind:'chest',chest:'silver'},
+{w:9,ico:'🧨',kind:'dyn'},
+{w:1,ico:'🏆',kind:'jackpot'}];
+function slotRoll(){
+var p=slotPity(),pool=SLOT_TABLE;
+if(p>=8)pool=SLOT_TABLE.filter(function(t){return t.kind!=='coins';});
+var total=0,i;for(i=0;i<pool.length;i++)total+=pool[i].w;
+var r=Math.random()*total;
+for(i=0;i<pool.length;i++){r-=pool[i].w;if(r<0)return pool[i];}
+return pool[pool.length-1];}
+function slotApply(t){
+var txt='';
+if(t.kind==='coins'){var n=t.min===t.max?t.min:Math.floor(t.min+Math.random()*(t.max-t.min+1));
+invCoins+=n;txt='💰 +'+n+' монет';}
+else if(t.kind==='booster'){
+var bs=['ham','frz','swap','undo'],names={ham:'⛏ Молот',frz:'⏳ Часики',swap:'🔄 Обмен',undo:'↩️ Отмена'};
+var got=null,q;
+for(q=0;q<8&&!got;q++){var b=bs[Math.floor(Math.random()*4)];
+var cur=b==='ham'?(started&&!over?ham:invHam):b==='frz'?(started&&!over?frz:invFrz):b==='swap'?(started&&!over?swapB:invSwap):(started&&!over?undoB:invUndo);
+if(cur<BOOST_MAX)got=b;}
+if(got){
+if(started&&!over){if(got==='ham')ham++;if(got==='frz')frz++;if(got==='swap')swapB++;if(got==='undo')undoB++;
+if(typeof updateBoosterUI==='function')updateBoosterUI();}
+else{if(got==='ham'){invHam++;store.set('sv-inv-ham',invHam);}
+if(got==='frz'){invFrz++;store.set('sv-inv-frz',invFrz);}
+if(got==='swap'){invSwap++;store.set('sv-inv-swap',invSwap);}
+if(got==='undo'){invUndo++;store.set('sv-inv-undo',invUndo);}}
+txt=names[got]+' +1';}
+else{invCoins+=800;txt='💰 +800 (полки полны)';}}
+else if(t.kind==='chest'){invChests.push({type:t.chest,opened:false,id:Date.now()});updateBadge();
+txt=(t.chest==='bronze'?'🥉 Бронзовый':'🥈 Серебряный')+' сундук';}
+else if(t.kind==='dyn'){if(invDyn<2){invDyn++;txt='🧨 Динамит +1';}else{invCoins+=1500;txt='💰 +1 500 (кап динамита)';}}
+else if(t.kind==='jackpot'){invChests.push({type:'gold',opened:false,id:Date.now()});updateBadge();invCoins+=10000;txt='🏆 ДЖЕКПОТ: золотой сундук + 10 000 💰';}
+saveInv();
+return txt;}
+function slotPaint(ov){
+var info=ov.querySelector('#slotInfo'),btn=ov.querySelector('#btnSlotSpin'),strip=ov.querySelector('#slotStrip');
+if(info){var p=slotPity();
+info.textContent=(invStore.get('sv-slot-day','')===slotToday()?'Цена 2 000 💰':'Первый спин дня: 1 000 💰')+' · до гарантии приза: '+Math.max(0,8-p)+(p>=8?' — следующий спин!':'');}
+if(btn){btn.textContent='🎰 Крутить — '+slotPrice()+' 💰';btn.disabled=false;}
+if(strip&&!strip.children.length){var h='',i;
+for(i=0;i<8;i++)h+='<div style="width:64px;height:64px;display:grid;place-items:center;font-size:26px;flex:none">'+SLOT_TABLE[Math.floor(Math.random()*SLOT_TABLE.length)].ico+'</div>';
+strip.innerHTML=h;}}
+function slotSpin(ov){
+var price=slotPrice();
+if(invCoins<price){if(typeof Snd!=='undefined')Snd.bad();if(typeof showToast==='function')showToast('Мало монет');return;}
+invCoins-=price;saveInv();
+if(typeof statAdd==='function')statAdd('spins',1);
+invStore.set('sv-slot-day',slotToday());
+var t=slotRoll();
+var win=ov.querySelector('#slotWin'),strip=ov.querySelector('#slotStrip'),btn=ov.querySelector('#btnSlotSpin'),res=ov.querySelector('#slotResult'),hdr=ov.querySelector('#invCoinsHdr');
+if(btn){btn.disabled=true;btn.textContent='Крутим…';}
+if(res)res.textContent='';
+var icons=[],i;
+for(i=0;i<40;i++)icons.push(SLOT_TABLE[Math.floor(Math.random()*SLOT_TABLE.length)].ico);
+var TARGET=34;icons[TARGET]=t.ico;
+var cellW=64,h2='';
+for(i=0;i<40;i++)h2+='<div style="width:'+cellW+'px;height:64px;display:grid;place-items:center;font-size:26px;flex:none">'+icons[i]+'</div>';
+if(!strip)return;
+strip.style.transition='none';strip.style.transform='translateX(0)';strip.innerHTML=h2;
+var winW=win?win.clientWidth:300;
+var targetX=TARGET*cellW+cellW/2-winW/2+Math.round(Math.random()*24-12);
+var tickIv=setInterval(function(){if(typeof Snd!=='undefined'&&Snd.on&&Snd.tick)Snd.tick();},110);
+setTimeout(function(){
+strip.style.transition='transform 3s cubic-bezier(.12,.8,.2,1)';
+strip.style.transform='translateX(-'+targetX+'px)';
+},30);
+setTimeout(function(){
+clearInterval(tickIv);
+var txt=slotApply(t);
+var p=(t.kind==='coins')?slotPity()+1:0;
+invStore.set('sv-slot-pity',String(p));
+if(res)res.textContent=txt;
+if(hdr)hdr.textContent='💰 Монеты: '+invCoins;
+if(t.kind==='jackpot'){if(typeof Snd!=='undefined')Snd.mega();if(typeof confetti==='function')confetti();if(typeof showToast==='function')showToast('🏆 ДЖЕКПОТ!');}
+else if(typeof Snd!=='undefined'&&Snd.on&&Snd.coins)Snd.coins();
+slotPaint(ov);
+var cells=strip.children;if(cells&&cells[TARGET])cells[TARGET].style.boxShadow='inset 0 0 0 2px #ffd66b';
+},3150);
+}
+
+  function showReward(type,coins){
 if(typeof Snd !== 'undefined' && Snd.on && coins > 0){ Snd.init(); Snd.coins(); }
 if(type==='gold'&&coins>0&&Math.random()<0.10&&window.InvAPI&&InvAPI.giveGnom&&InvAPI.giveGnom()){showToast('💣 Гном-подрывник из золотого сундука!');}
 
