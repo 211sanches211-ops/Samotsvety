@@ -455,6 +455,7 @@ body.lowperf .chip.zen{animation:none}
 <li>◆ <b>3+ одинаковых</b> в ряд рассыпаются, каскады дают ×2, ×3…</li>
 <li>◆ <b>4</b> — молния, <b>5</b> — призма, <b>6+</b> — мега-бомба, <b>уголок</b> — бомба</li>
 <li>◆ <b>Две молнии</b> в одном комбо: одинаковые — тройная полоса, разные — крест 3×3</li>
+<li>◆ <b>💣 Бомба + ⚡ линия</b> — крест из трёх полос и трёх колонн; <b>💣 + 💣</b> — детонация 5×5</li>
 <li>◆ Спецкамень, взорванный <b>взрывом другого</b>, срабатывает усиленно: молния — двойная полоса, бомба — 5×5, призма — два цвета</li>
 <li>◆ <b>Две призмы</b> в одном комбо — СУПЕРНОВА: очищает всё поле</li>
 <li>◆ Уровень не проходится, пока не очищены <b>все льдины и валуны</b></li>
@@ -1934,7 +1935,27 @@ if(combo>=2)showBanner('КОМБО ×'+combo,'teal');
 updateHUD();
 await destroySet(set,id,spawns);if(id!==runId)return;
 prefers=null;groups=findMatchGroups();}}
-async function lineComboBlast(cr,cc,orient,id,extra){
+async function bombBombBlast(cr,cc,id){
+const set=new Set(),direct=new Set();
+const add=(rr,cc2)=>{if(rr<0||cc2<0||rr>=ROWS||cc2>=COLS)return;
+if(COL[rr][cc2]>0)return;
+const kk=key(rr,cc2);
+if(ROCK[rr][cc2]>0||ICE[rr][cc2]>0){direct.add(kk);return;}
+const gg0=grid[rr][cc2];if(gg0&&gg0.crate)return;
+set.add(kk);};
+for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++)add(cr+dr,cc+dc);
+Snd.mega();shake(14);buzz([30,40,30]);
+showBanner('ДЕТОНАЦИЯ 5×5!','bad');
+const triggered=expandWithSpecials(set,direct);
+damageObstacles(set,direct);countColorGoal(set);
+if(goal&&goal.type==='boss')hitGolem(set.size+triggered*5+15);
+const gn=addScore(set.size*60+triggered*200+600);
+maxCombo=Math.max(maxCombo,2);
+const p=cellXY(cr,cc);popup(p.x,p.y,'+'+fmt(gn),true,'#ffb066');
+updateHUD();
+await destroySet(set,id,[]);
+let g2=findMatchGroups();if(g2.length)await resolve(g2,null,id);}
+  async function lineComboBlast(cr,cc,orient,id,extra){
 const set=new Set(),direct=new Set();
 const addCell=(rr,ccc)=>{if(rr<0||ccc<0||rr>=ROWS||ccc>=COLS)return;
   if(COL[rr][ccc]>0)return;
@@ -2045,12 +2066,15 @@ grid[ra][ca]=gb;grid[rb][cb]=ga;ga.r=rb;ga.c=cb;gb.r=ra;gb.c=ca;
 const ax=ga.x,ay=ga.y,bx=gb.x,by=gb.y;
 await animSwap(ga,gb,ax,ay,bx,by);if(id!==runId)return;
 const isLine=x=>x.special==='line-h'||x.special==='line-v';
+const isBomb=x=>x.special==='bomb';
 const isMega=ga.special==='mega'||gb.special==='mega';
 const isPrism=!isMega&&(ga.special==='prism'||gb.special==='prism');
 const lineCombo=!isMega&&!isPrism&&isLine(ga)&&isLine(gb);
+const bombCombo=!isMega&&!isPrism&&!lineCombo&&isBomb(ga)&&isBomb(gb);
+const bombLine=!isMega&&!isPrism&&!lineCombo&&!bombCombo&&((isBomb(ga)&&isLine(gb))||(isBomb(gb)&&isLine(ga)));
 const orient=lineCombo?(ga.special===gb.special?(ga.special==='line-h'?'h':'v'):'cross'):null;
-const groups=(isMega||isPrism||lineCombo)?[]:findMatchGroups();
-if(!isMega&&!isPrism&&!lineCombo&&!groups.length){
+const groups=(isMega||isPrism||lineCombo||bombCombo||bombLine)?[]:findMatchGroups();
+if(!isMega&&!isPrism&&!lineCombo&&!bombCombo&&!bombLine&&!groups.length){
 Snd.bad();shake(4);buzz(20);
 grid[ra][ca]=ga;grid[rb][cb]=gb;ga.r=ra;ga.c=ca;gb.r=rb;gb.c=cb;
 await animSwap(ga,gb,ga.x,ga.y,gb.x,gb.y);if(id!==runId)return;
@@ -2058,6 +2082,8 @@ lastMove=null;
 busy=false;return;}
 if(mode==='classic'){moves--;bump(el.moves);}
 if(lineCombo){await lineComboBlast(rb,cb,orient,id,null)}
+else if(bombCombo){await bombBombBlast(rb,cb,id)}
+else if(bombLine){const p0=cellXY(rb,cb);popup(p0.x,p0.y-cell*.4,'💣+ КРЕСТ!',true,'#ffb066');await lineComboBlast(rb,cb,'cross',id,null)}
 else if(isMega){await megaSwap(ga,gb,id)}
 else if(isPrism){await prismSwap(ga,gb,id)}
 else{await resolve(groups,[{r:rb,c:cb},{r:ra,c:ca}],id)}
@@ -3406,6 +3432,7 @@ const NEWS=[
 {id:'fire2',ico:'🔥',t:'Огонь больше не гаснет сам',d:'После вспышки клетка снова горит, цепные реакции 40% остались. Взрыв огня не чистит лёд, валуны и яд за тебя — угрозу убирай только своими ходами.'},
 {id:'movebonus',ico:'🎯',t:'Бонус за ходы',d:'Прошёл уровень с запасом ходов? Каждый неиспользованный ход даёт +100 очков и +20 монет.'},
 {id:'crate',ico:'📦',t:'Уровни-доставка',d:'Ящик падает сверху вместе с камнями. Собирай комбинации под ним, чтобы спустить его на нижний ряд и получить +500 очков.'},
+{id:'combos2',ico:'💣',t:'Комбо спецкамней',d:'Бомба с линией даёт крест из трёх полос и колонн, две бомбы — детонацию 5×5. Меняй спецкамни местами!'},
 ];
 function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
 function newsMarkSeen(ids){const s=new Set(newsSeen());ids.forEach(i=>s.add(i));store.set('sv-news-seen',JSON.stringify([...s]));}
