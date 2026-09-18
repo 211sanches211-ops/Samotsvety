@@ -462,6 +462,7 @@ body.lowperf .chip.zen{animation:none}
 <li>◆ <b>💡 Подсказка</b> — 500 очков (или 4 сек в режиме «На время»)</li>
 <li>◆ Каждый <b>10-й уровень</b> — босс: Кристальный голем</li>
 <li>◆ С <b>3 уровня</b> — лёд, с <b>7</b> — огонь, с <b>9</b> — яд</li>
+<li>◆ <b>📦 Ящик</b>: не двигается и не разбивается — расчищай камни под ним, чтобы он спустился на нижний ряд</li>
 <li>◆ С <b>14 уровня</b> появляются <b>🧱 КОЛОННЫ</b></li>
 <li>◆ <b>🧘 Дзен-режим</b> — без ходов и таймера</li>
 </ul>
@@ -968,6 +969,31 @@ x.moveTo(-R*.5,-R*.6);x.lineTo(-R*.15,-R*.2);x.lineTo(-R*.4,R*.15);x.lineTo(-R*.
 x.moveTo(R*.45,-R*.5);x.lineTo(R*.15,-R*.1);x.lineTo(R*.4,R*.3);x.stroke();}
 return cv;}
 function buildRocks(){ROCK_SPR[1]=makeRock(true);ROCK_SPR[2]=makeRock(false);}
+  let CRATE_SPR=null;
+function buildCrate(){
+const S=SPR_S,cv=document.createElement('canvas');cv.width=cv.height=S;
+const x=cv.getContext('2d');x.translate(S/2,S/2);x.lineJoin='round';
+const R=S*.40;
+const g=x.createLinearGradient(-R,-R,R,R);
+g.addColorStop(0,'#b08046');g.addColorStop(.5,'#8a5c2c');g.addColorStop(1,'#5e3d1c');
+x.fillStyle=g;
+x.beginPath();
+if(x.roundRect)x.roundRect(-R,-R,R*2,R*2,R*.18);else x.rect(-R,-R,R*2,R*2);
+x.fill();
+x.lineWidth=S*.035;x.strokeStyle='rgba(40,24,10,.9)';x.stroke();
+x.strokeStyle='rgba(60,38,16,.55)';x.lineWidth=S*.018;
+for(let i=1;i<4;i++){const p=-R+(R*2)*i/4;
+x.beginPath();x.moveTo(p,-R);x.lineTo(p,R);x.stroke();}
+x.strokeStyle='#c8965a';x.lineWidth=S*.05;
+x.beginPath();x.moveTo(-R,-R);x.lineTo(R,R);x.moveTo(R,-R);x.lineTo(-R,R);x.stroke();
+x.strokeStyle='rgba(255,214,107,.85)';x.lineWidth=S*.028;
+x.beginPath();x.moveTo(-R,0);x.lineTo(R,0);x.stroke();
+x.fillStyle='#2ee6a8';x.shadowColor='#2ee6a8';x.shadowBlur=S*.06;
+x.beginPath();x.moveTo(0,-R*.32);x.lineTo(R*.24,0);x.lineTo(0,R*.32);x.lineTo(-R*.24,0);x.closePath();x.fill();
+x.shadowBlur=0;
+x.fillStyle='rgba(255,255,255,.25)';
+x.beginPath();x.moveTo(-R,-R);x.lineTo(R,-R);x.lineTo(R,-R*.72);x.lineTo(-R,-R*.72);x.closePath();x.fill();
+CRATE_SPR=cv;}
 const COL_SPR={cap:null,shaft:null,base:null};
 function makeColCap(){
   const S=SPR_S,cv=document.createElement('canvas');cv.width=cv.height=S;
@@ -1089,7 +1115,7 @@ const LEVEL_CONFIG = {
     10: { ice:0, rock:0, fire:0, poison:0, col:0, goal:'boss'   },
     11: { ice:0, rock:3, fire:0, poison:2, col:0, goal:'clean'  },
     12: { ice:3, rock:0, fire:1, poison:0, col:0, goal:'clean'  },
-    13: { ice:0, rock:0, fire:0, poison:0, col:0, goal:'score'  },
+    13: { ice:0, rock:0, fire:0, poison:0, col:0, goal:'crate' },
     14: { ice:0, rock:0, fire:0, poison:0, col:2, goal:'score'  },
     15: { ice:0, rock:0, fire:1, poison:1, col:0, goal:'score'  },
     16: { ice:4, rock:0, fire:0, poison:0, col:0, goal:'color'  },
@@ -1124,6 +1150,7 @@ function levelGoalKind(l){
     if(l<=20) return LEVEL_CONFIG[l].goal;
     if(l%10===0) return 'boss';
     if(l%10===1) return 'score';
+if(l%10===4) return 'crate';
     if(l%7===0)  return 'clean';
     if(l%3===0)  return 'color';
     if(l%5===0)  return 'special';
@@ -1168,6 +1195,7 @@ let seenIce=false, seenRock=false;
 let seenFire=store.get('sv-seen-fire','')==='1';
 let seenPoison=store.get('sv-seen-poison','')==='1';
 let seenCham=store.get('sv-seen-cham','')==='1';
+  let seenCrate=store.get('sv-seen-crate','')==='1';
 // ===== ВЫЖИВАНИЕ =====
 function threat(){let n=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
 if(ICE[r][c]>0||ROCK[r][c]>0||FIRE[r+','+c]||POISON[r+','+c])n++;
@@ -1206,7 +1234,7 @@ checkThreat();}
   try{
     lastMove={
       moves,score,levelStartScore,timeLeft,
-      board:grid.map(row=>row.map(g=>g?[g.t,g.special||null,g.cham?1:0]:null)),
+      board:grid.map(row=>row.map(g=>g?[g.t,g.special||null,g.cham?1:0,g.crate?1:0]:null)),
       ice:ICE.map(r=>r.slice()),
       rock:ROCK.map(r=>r.slice()),
       col:COL.map(r=>r.slice()),
@@ -1258,6 +1286,7 @@ function makeGoal(l){
     if(k==='boss')    return {type:'boss', need:60+l*4, done:0, counted:false};
     if(k==='special') return {type:'special', need:2+Math.floor(l/7), done:0};
     if(k==='clean')   return {type:'clean', needIce:0, needRock:0, doneIce:0, doneRock:0, ready:false};
+  if(k==='crate')   return {type:'crate', need:(l>=34?2:1), done:0};
     if(k==='color'){
         let c1=irnd(TYPES), c2;
         do { c2=irnd(TYPES); } while (c2===c1);
@@ -1268,6 +1297,7 @@ function makeGoal(l){
 }
 function mainMet(){if(!goal)return false;
 if(goal.type==='boss')return goal.done>=goal.need;
+if(goal.type==='crate')return goal.done>=goal.need;
 if(goal.type==='score')return score-levelStartScore>=goal.need;
 if(goal.type==='color2')return goal.done1>=goal.needEach && goal.done2>=goal.needEach;
 if(goal.type==='special')return goal.done>=goal.need;
@@ -1281,6 +1311,7 @@ if(!goal)return'';
 if(goal.type==='boss')return'Цель: повергнуть голема ('+goal.need+' урона).';
 if(goal.type==='special')return'Цель: создай '+goal.need+' спецкамней.';
 if(goal.type==='clean')return'Цель: очисти поле от ВСЕХ льдин и валунов.';
+if(goal.type==='crate')return'Цель: доставь 📦 ящики на нижний ряд ('+goal.need+').';
 if(goal.type==='color2')return'Цель: собери 2 разных цвета.';
 return'Цель: '+fmt(goal.need)+' очков.';}
 let themePref=store.get('sv-theme','auto');
@@ -1358,7 +1389,7 @@ function seedChams(){
 if(!chamAllowed())return;
 const cand=[];
 for(const row of grid)for(const g of row)
-if(g&&!g.cham&&!g.special&&ICE[g.r][g.c]===0&&COL[g.r][g.c]===0)cand.push(g);
+if(g&&!g.cham&&!g.special&&!g.crate&&ICE[g.r][g.c]===0&&COL[g.r][g.c]===0)cand.push(g);
 for(let i=cand.length-1;i>0;i--){const j=irnd(i+1);[cand[i],cand[j]]=[cand[j],cand[i]];}
 let need=Math.max(0,2-chamCount());
 for(const g of cand){if(need<=0)break;g.cham=true;need--;}}
@@ -1431,7 +1462,12 @@ text:'Горящая клетка взрывается через 3 хода: В
         plates.push({ico:'🦎',title:'Новое: ХАМЕЛЕОН',
             text:'Меняет цвет каждый ход.'});
     }
-    if(!skipTutorial&&!seenIce&&levelHazards(l).ice>0){
+    if(!skipTutorial&&!seenCrate&&goal&&goal.type==='crate'){
+seenCrate=true;
+plates.push({ico:'📦',title:'Новое: ЯЩИКИ',
+text:'Ящик нельзя двигать и бить. Собирай комбинации под ним, чтобы он спускался, и доставь на нижний ряд.'});
+}
+  if(!skipTutorial&&!seenIce&&levelHazards(l).ice>0){
         seenIce=true;
         plates.push({ico:'❄',title:'Новое: ЛЁД',
             text:'Собирай комбинации рядом, чтобы скалывать.'});
@@ -1451,6 +1487,10 @@ text:'Горящая клетка взрывается через 3 хода: В
         plates.push({ico:'🧹',title:'Очисти поле',
             text:'Убери весь лёд и все валуны.'});
     }
+      else if(goal&&goal.type==='crate'){
+plates.push({ico:'📦',title:'Доставка',
+text:'Ящик падает вместе с камнями. Расчищай совпадения под ним — и он опустится. Доставь ящик на нижний ряд!'});
+}
     else if(goal&&goal.type==='score'){
         plates.push({ico:'⭐',title:'Цель уровня',
             text:'Набери '+fmt(goal.need)+' очков.'});
@@ -1468,7 +1508,7 @@ function spawnFire(l){
     for(let i=0;i<num;i++){
         let r,c,guard=0;
         do{r=irnd(ROWS);c=irnd(COLS);guard++;}
-        while((FIRE[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||grid[r][c]?.special||POISON[r+','+c])&&guard<100);
+       while((FIRE[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||grid[r][c]?.special||grid[r][c]?.crate||POISON[r+','+c])&&guard<100);
         if(guard<100)FIRE[r+','+c]=3;
     }
 }
@@ -1482,6 +1522,30 @@ function spawnPoison(l){
         while((FIRE[r+','+c]||ICE[r][c]>0||ROCK[r][c]>0||COL[r][c]>0||grid[r][c]?.special||POISON[r+','+c]||createsRunAt(r,c))&&guard<100);
         if(guard<100){POISON[r+','+c]=1;POISON_AGE[r+','+c]=0;}
     }
+}
+  function newCrate(r,c){const g=newGem(-1,r,c);g.crate=true;return g;}
+function spawnCrates(n){
+if(mode!=='classic'||!n)return;
+const cols=[];
+for(let c=0;c<COLS;c++)if(COL[0][c]===0)cols.push(c);
+for(let i=cols.length-1;i>0;i--){const j=irnd(i+1);[cols[i],cols[j]]=[cols[j],cols[i]];}
+for(let i=0;i<n&&i<cols.length;i++){grid[0][cols[i]]=newCrate(0,cols[i]);}}
+function collectCrates(){
+for(let c=0;c<COLS;c++){
+const g=grid[ROWS-1][c];
+if(g&&g.crate){
+grid[ROWS-1][c]=null;
+const p=cellXY(ROWS-1,c);
+for(let i=0;i<14;i++){const a=rnd(Math.PI*2),sp=rnd(1.5,4)*cell;
+particles.push({x:p.x,y:p.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-cell,gr:cell*8,t:0,ttl:rnd(.4,.8),col:i%2?'#ffd66b':'#c8965a',sz:rnd(.06,.12)*cell,spark:false});}
+const bn=addScore(500);
+popup(p.x,p.y-cell*.3,'📦 +'+fmt(bn),true,'#ffd66b');
+showToast('📦 Ящик доставлен!');
+if(Snd.on){Snd.init();Snd.spawn();Snd.tick();}
+if(goal&&goal.type==='crate')goal.done=Math.min(goal.need,goal.done+1);
+updateHUD();
+}
+}
 }
 function poisonSpread(){
 if(!started||over)return;
@@ -1513,7 +1577,7 @@ if(spread){showToast('☠ Яд расползается!');Snd.iceCrack();update
 if(poisonCount()>=(ROWS*COLS)/2){showBanner('ЯД ПОБЕДИЛ!','bad');gameOver();}}
 function findMatchRuns(){
 const runs=[];
-const blocked=(r,c)=>!grid[r][c]||ICE[r][c]>0||COL[r][c]>0||FIRE[r+','+c];
+const blocked=(r,c)=>!grid[r][c]||ICE[r][c]>0||COL[r][c]>0||FIRE[r+','+c]||POISON[r+','+c]||grid[r][c].crate;
 for(let r=0;r<ROWS;r++){let c=0;while(c<COLS){
 if(blocked(r,c)){c++;continue}const t=grid[r][c].t;let e=c+1;
 while(e<COLS&&!blocked(r,e)&&grid[r][e].t===t)e++;
@@ -1550,6 +1614,7 @@ for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
 for(const[dr,dc]of[[0,1],[1,0]]){
 const r2=r+dr,c2=c+dc;if(r2>=ROWS||c2>=COLS)continue;
 const a=grid[r][c],b=grid[r2][c2];if(!a||!b)continue;
+if(a.crate||b.crate)continue;
 if(ICE[r][c]>0||ICE[r2][c2]>0||COL[r][c]>0||COL[r2][c2]>0||FIRE[r+','+c]||FIRE[r2+','+c2]||POISON[r+','+c]||POISON[r2+','+c2])continue;
 grid[r][c]=b;grid[r2][c2]=a;
 const ok=findMatchRuns().length>0;
@@ -1619,8 +1684,8 @@ function placeObstacles(l){
     for(let attempt=0;attempt<25;attempt++){
         const half=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS/2;c++)half.push([r,c]);
         for(let i=half.length-1;i>0;i--){const j=irnd(i+1);[half[i],half[j]]=[half[j],half[i]];}
-        const freeIce=(r,c)=>grid[r][c]&&!grid[r][c].special&&ICE[r][c]===0&&ROCK[r][c]===0&&COL[r][c]===0&&!FIRE[r+','+c]&&!POISON[r+','+c];
-        const freeRock=(r,c)=>grid[r][c]&&ICE[r][c]===0&&ROCK[r][c]===0&&COL[r][c]===0&&!FIRE[r+','+c]&&!POISON[r+','+c]&&r>=2;
+        const freeIce=(r,c)=>grid[r][c]&&!grid[r][c].special&&!grid[r][c].crate&&ICE[r][c]===0&&ROCK[r][c]===0&&COL[r][c]===0&&!FIRE[r+','+c]&&!POISON[r+','+c];
+const freeRock=(r,c)=>grid[r][c]&&!grid[r][c].crate&&ICE[r][c]===0&&ROCK[r][c]===0&&COL[r][c]===0&&!FIRE[r+','+c]&&!POISON[r+','+c]&&r>=2;
         const pi=[],pr=[];let hi2=0;
         for(let n=0;n<iceN/2&&hi2<half.length;){const[r,c]=half[hi2++];
             if(!freeIce(r,c)||!freeIce(r,COLS-1-c))continue;
@@ -1682,6 +1747,7 @@ r=top-1;}}
 for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const g=grid[r][c];if(!g)continue;
 const p=cellXY(g.r,g.c);g.x=p.x;
 if(g.y<p.y-.5){g.falling=true;g.bounced=false}else if(!g.falling){g.y=p.y;g.vy=0}}}
+collectCrates();
 function allSettled(){for(const row of grid)for(const g of row)if(g&&g.falling)return false;return true}
 function waitFall(id){return new Promise(res=>{fallRes={res,id}})}
 function expandWithSpecials(set,direct){
@@ -1696,6 +1762,7 @@ const up=chained.has(k);
 const add=(rr,cc)=>{if(rr<0||cc<0||rr>=ROWS||cc>=COLS)return;
 const kk=key(rr,cc);
 if(COL[rr][cc]>0)return;
+if(grid[rr][cc]&&grid[rr][cc].crate)return;
 if(ROCK[rr][cc]>0||ICE[rr][cc]>0){direct.add(kk);return;}
 if(!set.has(kk)){
 set.add(kk);
@@ -1743,7 +1810,7 @@ const q2=cellXY(cr,cc);fxRings.push({x:q2.x,y:q2.y,t:0,mega:true});
 for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)add(cr+dr,cc+dc);}}
 else if(g.special==='prism'){const cnt={};
 for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++){const gg=grid[rr][cc];
-if(gg&&ICE[rr][cc]===0&&COL[rr][cc]===0)cnt[gg.t]=(cnt[gg.t]||0)+1;}
+if(gg&&!gg.crate&&ICE[rr][cc]===0&&COL[rr][cc]===0)cnt[gg.t]=(cnt[gg.t]||0)+1;}
 let bt=0;for(const t in cnt)if(cnt[t]>cnt[bt])bt=+t;
 const p=cellXY(r,c);fxRings.push({x:p.x,y:p.y,t:0});
 for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++)
@@ -1864,7 +1931,7 @@ const addCell=(rr,ccc)=>{if(rr<0||ccc<0||rr>=ROWS||ccc>=COLS)return;
   if(COL[rr][ccc]>0)return;
   const kk=key(rr,ccc);
   if(ROCK[rr][ccc]>0||ICE[rr][ccc]>0){direct.add(kk);return;}
-  if(grid[rr][ccc])set.add(kk);};
+  if(grid[rr][ccc]&&!grid[rr][ccc].crate)set.add(kk);};
 if(extra)extra.forEach(k=>{const[r,c]=k.split(',').map(Number);
   if(COL[r][c]>0)return;
   if(ROCK[r][c]>0||ICE[r][c]>0)direct.add(k);else if(grid[r][c])set.add(k);});
@@ -1888,7 +1955,7 @@ const set=new Set(),direct=new Set();
 for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
   if(COL[r][c]>0)continue;
   if(ROCK[r][c]>0||ICE[r][c]>0)direct.add(key(r,c));
-  else if(grid[r][c])set.add(key(r,c));}
+ else if(grid[r][c]&&!grid[r][c].crate)set.add(key(r,c));}
 Snd.mega();Snd.prism();shake(16);buzz([40,60,40]);
 showBanner('СУПЕРНОВА!');
 const triggered=expandWithSpecials(set,direct);
@@ -1928,7 +1995,7 @@ const addCell=(rr,cc)=>{if(rr<0||cc<0||rr>=ROWS||cc>=COLS)return;
   if(COL[rr][cc]>0)return;
   const kk=key(rr,cc);
   if(ROCK[rr][cc]>0||ICE[rr][cc]>0){direct.add(kk);return;}
-  if(grid[rr][cc])set.add(kk);};
+  if(grid[rr][cc]&&!grid[rr][cc].crate)set.add(kk);};
 const area=(cr,cc)=>{for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)addCell(cr+dr,cc+dc);
 const p=cellXY(cr,cc);fxRings.push({x:p.x,y:p.y,t:0,mega:true});};
 area(m.r,m.c);
@@ -1958,6 +2025,7 @@ const id=runId;busy=true;selected=null;hintPair=null;
 snapshotState();
 const ga=grid[ra][ca],gb=grid[rb][cb];
 if(!ga||!gb){busy=false;return}
+if(ga.crate||gb.crate){Snd.bad();shake(3);const p=cellXY(ra,ca);popup(p.x,p.y,'📦 не двигается!',false,'#ffd9a8');busy=false;return;}
 if(ICE[ra][ca]>0||ICE[rb][cb]>0){
 if(ga)ga.iceT=.4;if(gb)gb.iceT=.4;Snd.iceCrack();shake(3);busy=false;return;}
 if(COL[ra][ca]>0||COL[rb][cb]>0){Snd.colHit();shake(3);busy=false;return;}
@@ -2114,6 +2182,7 @@ spawnFire(level);
 spawnPoison(level);
 goal=makeGoal(level);
 if(goal&&goal.type==='clean'){goal.needIce=sumIceLayers();goal.needRock=rockCount();goal.ready=true;}
+if(goal&&goal.type==='crate')spawnCrates(goal.need);
 if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
 seedChams();
 applyTheme();updateHUD();updateBoosterUI();updateBossUI();saveGame();
@@ -2129,7 +2198,7 @@ showBanner('НЕТ ХОДОВ','bad');Snd.shuffleS();
 await wait(700);if(id!==runId)return;
 const cells=[],gems=[];
 for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
-if(grid[r][c]&&ICE[r][c]===0&&COL[r][c]===0&&!FIRE[r+','+c]&&!POISON[r+','+c]){cells.push([r,c]);gems.push(grid[r][c]);}
+if(grid[r][c]&&!grid[r][c].crate&&ICE[r][c]===0&&COL[r][c]===0&&!FIRE[r+','+c]&&!POISON[r+','+c]){cells.push([r,c]);gems.push(grid[r][c]);}
 let ok=false;
 for(let tries=0;tries<80&&!ok;tries++){
 for(let i=gems.length-1;i>0;i--){const j=irnd(i+1);[gems[i],gems[j]]=[gems[j],gems[i]];}
@@ -2158,9 +2227,9 @@ $('#btnSwap').classList.toggle('active',swapAim);}
 async function hammerStrike(r,c){
 const id=runId;busy=true;hammerAim=false;
 const p=cellXY(r,c);shake(6);buzz(25);
-if(COL[r][c]>0){Snd.colHit();shake(4);
-  popup(p.x,p.y,'🧱 неразрушим!',false,'#b8c8dc');
-  hammerAim=false;updateBoosterUI();busy=false;return;}
+if(grid[r][c]&&grid[r][c].crate){Snd.rockHit();shake(3);
+popup(p.x,p.y,'📦 не разбить — веди вниз!',false,'#ffd9a8');
+hammerAim=false;updateBoosterUI();busy=false;return;}
 snapshotState();
 ham--;updateBoosterUI();
 if(ROCK[r][c]>0){rockBurst(p.x,p.y,true);ROCK[r][c]=0;Snd.rockBreak();
@@ -2209,7 +2278,7 @@ for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
   if(!cd){grid[r][c]=null;continue;}
   const p=cellXY(r,c);
   const g=newGem(cd[0],r,c);
-  g.special=cd[1]||null;g.cham=!!cd[2];
+g.special=cd[1]||null;g.cham=!!cd[2];g.crate=!!cd[3];
   g.x=p.x;g.y=p.y;
   grid[r][c]=g;
 }
@@ -2241,7 +2310,7 @@ try{store.set(SAVE_KEY,JSON.stringify({
 v:2,mode,score,level,moves,levelStartScore,timeLeft,goal,ham,frz,swapB,undoB,nextBonusAt,
 nha:nextHamAt,nfa:nextFrzAt,nsa:nextSwapAt,nuo:nextUndoAt,mvl:movesInLevel,
 seenIce,seenRock,seenFire,seenPoison,seenCham,seenCols,
-board:grid.map(row=>row.map(g=>g?[g.t,g.special||null,g.cham?1:0]:null)),
+board:grid.map(row=>row.map(g=>g?[g.t,g.special||null,g.cham?1:0,g.crate?1:0]:null)),
 ice:ICE,rock:ROCK,col:COL,fire:FIRE,poison:POISON,poisonAge:POISON_AGE
 }))}catch(e){}}
 function loadSave(){try{const d=JSON.parse(store.get(SAVE_KEY,'null'));
@@ -2270,7 +2339,7 @@ function restoreGame(d){
     if(d.v === 2 && Array.isArray(d.board) && d.board.length === ROWS && d.board[0].length === COLS){
         grid=d.board.map((row,r)=>row.map((cd,c)=>{
             if(!cd)return null;
-            const g=newGem(cd[0]||0,r,c);g.special=cd[1]||null;g.cham=!!cd[2];return g;}));
+            const g=newGem(cd[0]||0,r,c);g.special=cd[1]||null;g.cham=!!cd[2];g.crate=!!cd[3];return g;}));
         ICE=(d.ice&&d.ice.length===ROWS)?d.ice.map(r=>r.slice()):zeroMat();
         ROCK=(d.rock&&d.rock.length===ROWS)?d.rock.map(r=>r.slice()):zeroMat();
         COL=(d.col&&d.col.length===ROWS)?d.col.map(r=>r.slice()):makeCols(level);
@@ -2289,6 +2358,7 @@ function restoreGame(d){
             goal.needRock=rockCount();
             goal.ready=true;
         }
+      if(goal&&goal.type==='crate')spawnCrates(goal.need);
     }
     if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
     if(grid.some(row=>row.length!==COLS))genBoard();
@@ -2358,6 +2428,7 @@ placeObstacles(level);
 spawnFire(level);spawnPoison(level);
 goal=makeGoal(level);
 if(goal&&goal.type==='clean'){goal.needIce=sumIceLayers();goal.needRock=rockCount();goal.ready=true;}
+if(goal&&goal.type==='crate')spawnCrates(goal.need);
 if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
 seedChams();
 over=false;busy=true;
@@ -2375,6 +2446,7 @@ for(let dr=-rad;dr<=rad;dr++)for(let dc=-rad;dc<=rad;dc++){
 const rr=r+dr,cc=c+dc;
 if(rr<0||cc<0||rr>=ROWS||cc>=COLS)continue;
 if(COL[rr][cc]>0)continue;
+if(grid[rr][cc]&&grid[rr][cc].crate)continue;
 const kk=key(rr,cc);
 if(ROCK[rr][cc]>0||ICE[rr][cc]>0){direct.add(kk);continue;}
 set.add(kk);}
@@ -2506,7 +2578,7 @@ runId++;over=false;started=true;busy=true;selected=null;hintPair=null;dragStart=
     document.querySelector('.board-frame').classList.remove('rush');
     tweens.length=0;particles.length=0;popups.length=0;fxBeams.length=0;fxRings.length=0;
     glints.length=0;fallRes=null;maxCombo=1;lastTick=99;
-    seenIce=false;seenRock=false;seenCham=false;seenFire=false;seenPoison=false;seenCols=false;
+   seenIce=false;seenRock=false;seenCham=false;seenCrate=false;seenFire=false;seenPoison=false;seenCols=false;
     if(fresh){
         mode=m;
         score=0;dispScore=0;lastShown=-1;level=1;moves=MOVES_PER_LEVEL;
@@ -2532,6 +2604,7 @@ wave=1;waveMoves=SURV_WAVE_MOVES;
                 goal.needRock=rockCount();
                 goal.ready=true;
             }
+          if(goal&&goal.type==='crate')spawnCrates(goal.need);
         }
     } else {
         restoreGame(data);
@@ -2802,6 +2875,7 @@ if(g.pop<0){ctx.fillStyle='rgba(3,10,16,.35)';
 ctx.beginPath();ctx.ellipse(g.x+ox,(r+1)*cell-cell*.1,cell*.28*g.scale,cell*.09*g.scale,0,0,Math.PI*2);ctx.fill();}
 ctx.save();ctx.translate(g.x+ox,g.y+bob);
 if(g.pop>=0)ctx.globalAlpha=g.scale<.4?g.scale/.4:1;
+  if(g.crate){ctx.drawImage(CRATE_SPR,-s/2,-s/2,s,s);ctx.restore();continue;}
 if(g.special==='prism'){ctx.save();ctx.rotate(t*.9);
 ctx.drawImage(PRISM,-s/2,-s/2,s,s);ctx.restore();
 const a=t*2.4;ctx.fillStyle='rgba(255,255,255,.9)';
@@ -2987,6 +3061,10 @@ el.goalLbl.textContent='Собери кристаллы';
 const totalDone=goal.done1+goal.done2, totalNeed=goal.needEach*2;
 el.goalNum.innerHTML = `${goal.done1}/${goal.needEach}&nbsp;&nbsp;&nbsp;${goal.done2}/${goal.needEach}`;
 el.bar.style.width=clamp(totalDone/totalNeed*100,0,100)+'%';}
+  else if(goal.type==='crate'){
+el.goalLbl.textContent='Доставь ящики';
+el.goalNum.textContent='📦 '+goal.done+' / '+goal.need;
+el.bar.style.width=clamp(goal.done/goal.need*100,0,100)+'%';}
 else if(goal.type==='special'){
 el.goalLbl.textContent='Создай спецкамни';
 el.goalNum.textContent='⚡ '+goal.done+' / '+goal.need;
@@ -3022,6 +3100,7 @@ if(swapAim){
 if(COL[pos.r][pos.c]>0){Snd.colHit();shake(2);return;}
 const g=grid[pos.r][pos.c];
 if(!g){Snd.bad();return;}
+if(g.crate){Snd.bad();shake(2);return;}
 if(ICE[pos.r][pos.c]>0||FIRE[pos.r+','+pos.c]||POISON[pos.r+','+pos.c]){Snd.bad();shake(2);return;}
 if(!swapFirst){swapFirst={r:pos.r,c:pos.c};Snd.tick();return;}
 if(swapFirst.r===pos.r&&swapFirst.c===pos.c){swapFirst=null;Snd.tick();return;}
@@ -3033,6 +3112,7 @@ if(COL[pos.r][pos.c]>0){Snd.colHit();shake(2);return;}
 const g=grid[pos.r][pos.c];
 if(!g){Snd.rockHit();shake(2);return;}
 if(ICE[pos.r][pos.c]>0){g.iceT=.4;Snd.iceCrack();shake(2);return;}
+  if(g.crate){Snd.rockHit();shake(2);const pp=cellXY(pos.r,pos.c);popup(pp.x,pp.y,'📦 доставь вниз!',false,'#ffd9a8');return;}
 if(FIRE[pos.r+','+pos.c]||POISON[pos.r+','+pos.c]){Snd.bad();shake(2);return;}
 if(selected&&isAdj(selected,pos)){const s=selected;selected=null;dragStart=null;
 doSwap(s.r,s.c,pos.r,pos.c);return;}
@@ -3185,7 +3265,7 @@ function toggleTutorial(){
   store.set('sv-tutorial', v);
   if(v === '1'){
     // Обучение включили — сбрасываем флаги, чтобы плашки показались заново
-    seenIce=false;seenRock=false;seenFire=false;seenPoison=false;seenCham=false;seenCols=false;
+   seenIce=false;seenRock=false;seenFire=false;seenPoison=false;seenCham=false;seenCrate=false;seenCols=false;
   }
   paintTutorial();
   if(Snd.on){ Snd.init(); Snd.tick(); }
@@ -3316,6 +3396,7 @@ const NEWS=[
 {id:'poison2',ico:'☠',t:'Яд теперь в комбинациях',d:'Ядовитый камень нельзя двигать, но он входит в линии своего цвета — собирай совпадения через него, чтобы очищать яд.'},  
 {id:'fire2',ico:'🔥',t:'Огонь больше не гаснет сам',d:'После вспышки клетка снова горит, цепные реакции 40% остались. Взрыв огня не чистит лёд, валуны и яд за тебя — угрозу убирай только своими ходами.'},
 {id:'movebonus',ico:'🎯',t:'Бонус за ходы',d:'Прошёл уровень с запасом ходов? Каждый неиспользованный ход даёт +100 очков и +20 монет.'},
+{id:'crate',ico:'📦',t:'Уровни-доставка',d:'Ящик падает сверху вместе с камнями. Собирай комбинации под ним, чтобы спустить его на нижний ряд и получить +500 очков.'},
 ];
 function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
 function newsMarkSeen(ids){const s=new Set(newsSeen());ids.forEach(i=>s.add(i));store.set('sv-news-seen',JSON.stringify([...s]));}
@@ -3508,7 +3589,8 @@ function devJumpToLv(n){
     spawnFire(level);
     spawnPoison(level);
     goal=makeGoal(level);
-    if(goal&&goal.type==='clean'){goal.needIce=sumIceLayers();goal.needRock=rockCount();goal.ready=true;}
+if(goal&&goal.type==='clean'){goal.needIce=sumIceLayers();goal.needRock=rockCount();goal.ready=true;}
+if(goal&&goal.type==='crate')spawnCrates(goal.need);
     if(goal&&goal.type==='boss'){golemAngry=false;paintGolem();}
    seedChams();
 applyTheme();updateHUD();updateBoosterUI();updateBossUI();
@@ -3710,7 +3792,7 @@ if(shakeT>0)shakeT-=dt;else shakeMag=0;
 dispScore+=(score-dispScore)*Math.min(1,dt*7);
 hudFrame();}
 new ResizeObserver(fitCanvas).observe(document.querySelector('.board-frame'));
-buildSprites();buildPrism();buildMega();buildRocks();buildCols();
+buildSprites();buildPrism();buildMega();buildRocks();buildCols();buildCrate();
 ICE=zeroMat();ROCK=zeroMat();COL=zeroMat();FIRE={};POISON={};POISON_AGE={};goal=makeGoal(1);
 fitCanvas();genBoard();goal=makeGoal(1);introFall();
 paintGolem();
