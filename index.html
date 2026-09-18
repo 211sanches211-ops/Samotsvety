@@ -2045,6 +2045,8 @@ const a=rnd(Math.PI*2),sp=rnd(1,5)*cell;
 particles.push({x:p.x,y:p.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,gr:cell*7,t:0,ttl:rnd(.4,.9),col:i%2?'#ff7a1a':'#ffd66b',sz:rnd(.06,.14)*cell,spark:true});
 }
 damageObstacles(gems,direct);
+countColorGoal(gems);
+if(goal&&goal.type==='boss')hitGolem(gems.size);
 const set=new Set([...gems]);
 await destroySet(set,id,[]);
 for(const[r,c]of cells){
@@ -2365,6 +2367,8 @@ const kk=key(rr,cc);
 if(ROCK[rr][cc]>0||ICE[rr][cc]>0){direct.add(kk);continue;}
 set.add(kk);}
 const tr=expandWithSpecials(set,direct);
+countColorGoal(set);
+if(goal&&goal.type==='boss')hitGolem(set.size+tr*5);
 if(tr)addScore(tr*200);
 direct.forEach(k=>{const[a,b]=k.split(',').map(Number);
 const p=cellXY(a,b);
