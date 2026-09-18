@@ -249,7 +249,7 @@ font-family:'Unbounded',system-ui,sans-serif;font-weight:700;font-size:clamp(13p
 white-space:pre-line;max-width:min(86vw,430px);text-align:center;line-height:1.4;
 text-shadow:0 2px 0 #7a4c00;}
 .toast.show{animation:toastIn 1.25s cubic-bezier(.2,1.4,.3,1) forwards}
-.toast.show.long{animation-duration:2.8s}
+.toast.show.long{animation-duration:2.8s;font-size:clamp(12px,3.1vw,18px);max-width:min(92vw,460px);line-height:1.45}
 @keyframes toastIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}
 14%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}
 26%{transform:translate(-50%,-50%) scale(1)}
@@ -2078,7 +2078,7 @@ const coins=left*MOVE_BONUS_COINS;
 const g=addScore(pts);
 if(window.InvAPI)InvAPI.addCoins(coins);
 statAdd('coins',coins);
-showToast('🎯 Бонус за ходы\n'+fmt(g)+' очков, '+coins+' 💰');
+showToast('🎯 Бонус за ходы\n'+fmt(g).replace(/ /g,'\u00A0')+' очков, '+coins+'\u00A0💰');
 $('#toast').classList.add('long');
 if(Snd.on){Snd.init();Snd.coins();}
 }
