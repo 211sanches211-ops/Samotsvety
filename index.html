@@ -3441,7 +3441,7 @@ const NEWS=[
 
 {id:'crateswap',ico:'📦',t:'Ящик можно менять!',d:'Теперь ящик меняется местами с соседним камнем, если после обмена камень соберёт линию на месте ящика. Гравитация плюс хитрые свапы — доставка груза стала настоящей головоломкой.'},
 ];
-function newsSeen(){
+function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
 function newsMarkSeen(ids){const s=new Set(newsSeen());ids.forEach(i=>s.add(i));store.set('sv-news-seen',JSON.stringify([...s]));}
 function newsBaseline(){
 if(store.get('sv-news-init','')==='1')return;
