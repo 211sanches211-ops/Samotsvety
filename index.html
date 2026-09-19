@@ -2071,9 +2071,9 @@ const isPrism=!isMega&&(ga.special==='prism'||gb.special==='prism');
 const lineCombo=!isMega&&!isPrism&&isLine(ga)&&isLine(gb);
 const bombCombo=!isMega&&!isPrism&&!lineCombo&&isBomb(ga)&&isBomb(gb);
 const bombLine=!isMega&&!isPrism&&!lineCombo&&!bombCombo&&((isBomb(ga)&&isLine(gb))||(isBomb(gb)&&isLine(ga)));
-const orient=lineCombo?(ga.special===gb.special?(ga.special==='line-h'?'h':'v'):'cross'):null;
 const crateSwap=!!(ga.crate||gb.crate);
 const specialSwap=!crateSwap&&(isMega||isPrism||lineCombo||bombCombo||bombLine);
+const orient=lineCombo?(ga.special===gb.special?(ga.special==='line-h'?'h':'v'):'cross'):null;
 const groups=specialSwap?[]:findMatchGroups();
 if(!specialSwap&&!groups.length){
 Snd.bad();shake(4);buzz(20);
@@ -2090,6 +2090,7 @@ else if(isMega){await megaSwap(ga,gb,id)}
 else if(isPrism){await prismSwap(ga,gb,id)}
 else{await resolve(groups,[{r:rb,c:cb},{r:ra,c:ca}],id)}
 if(id!==runId||over)return;
+await afterMove(id);}
 await afterMove(id);}
 async function swapFreeBoost(ra,ca,rb,cb){
 const id=runId;busy=true;swapAim=false;swapFirst=null;updateBoosterUI();
