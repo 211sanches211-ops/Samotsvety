@@ -463,7 +463,7 @@ body.lowperf .chip.zen{animation:none}
 <li>◆ <b>💡 Подсказка</b> — 500 очков (или 4 сек в режиме «На время»)</li>
 <li>◆ Каждый <b>10-й уровень</b> — босс: Кристальный голем</li>
 <li>◆ С <b>3 уровня</b> — лёд, с <b>7</b> — огонь, с <b>9</b> — яд</li>
-<li>◆ <b>📦 Ящик</b>: не двигается и не разбивается — расчищай камни под ним, чтобы он спустился на нижний ряд</li>
+<li>◆ <b>📦 Ящик</b>: падает вниз на расчищенное место; меняй его с соседним камнем, если камень соберёт линию на месте ящика; доставь на нижний ряд</li>
 <li>◆ С <b>14 уровня</b> появляются <b>🧱 КОЛОННЫ</b></li>
 <li>◆ <b>🧘 Дзен-режим</b> — без ходов и таймера</li>
 </ul>
@@ -1473,7 +1473,7 @@ text:'Горящая клетка взрывается через 3 хода: В
     if(!skipTutorial&&!seenCrate&&goal&&goal.type==='crate'){
 seenCrate=true;
 plates.push({ico:'📦',title:'Новое: ЯЩИКИ',
-text:'Ящик нельзя двигать и бить. Собирай комбинации под ним, чтобы он спускался, и доставь на нижний ряд.'});
+text:'Ящик спускается вниз, когда под ним расчищают камни. А ещё меняй его с соседним камнем, если после обмена камень соберёт линию на месте ящика. Доставь ящик на нижний ряд!'});
 }
   if(!skipTutorial&&!seenIce&&levelHazards(l).ice>0){
         seenIce=true;
@@ -1497,7 +1497,7 @@ text:'Ящик нельзя двигать и бить. Собирай комб�
     }
       else if(goal&&goal.type==='crate'){
 plates.push({ico:'📦',title:'Доставка',
-text:'Ящики падают вместе с камнями. Расчищай совпадения под ними — и они опустятся. Доставь все ('+goal.need+') на нижний ряд!'});
+text:'Ящик падает вниз на расчищенное место, а ещё его можно менять с соседним камнем, если тот соберёт линию на месте ящика. Доставь все ('+goal.need+') на нижний ряд!'});
 }
     else if(goal&&goal.type==='score'){
         plates.push({ico:'⭐',title:'Цель уровня',
@@ -1624,7 +1624,7 @@ for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
 for(const[dr,dc]of[[0,1],[1,0]]){
 const r2=r+dr,c2=c+dc;if(r2>=ROWS||c2>=COLS)continue;
 const a=grid[r][c],b=grid[r2][c2];if(!a||!b)continue;
-if(a.crate||b.crate)continue;
+if(a.crate&&b.crate)continue;
 if(ICE[r][c]>0||ICE[r2][c2]>0||COL[r][c]>0||COL[r2][c2]>0||FIRE[r+','+c]||FIRE[r2+','+c2]||POISON[r+','+c]||POISON[r2+','+c2])continue;
 grid[r][c]=b;grid[r2][c2]=a;
 const ok=findMatchRuns().length>0;
@@ -2055,7 +2055,6 @@ const id=runId;busy=true;selected=null;hintPair=null;
 snapshotState();
 const ga=grid[ra][ca],gb=grid[rb][cb];
 if(!ga||!gb){busy=false;return}
-if(ga.crate||gb.crate){Snd.bad();shake(3);const p=cellXY(ra,ca);popup(p.x,p.y,'📦 не двигается!',false,'#ffd9a8');busy=false;return;}
 if(ICE[ra][ca]>0||ICE[rb][cb]>0){
 if(ga)ga.iceT=.4;if(gb)gb.iceT=.4;Snd.iceCrack();shake(3);busy=false;return;}
 if(COL[ra][ca]>0||COL[rb][cb]>0){Snd.colHit();shake(3);busy=false;return;}
@@ -2073,15 +2072,18 @@ const lineCombo=!isMega&&!isPrism&&isLine(ga)&&isLine(gb);
 const bombCombo=!isMega&&!isPrism&&!lineCombo&&isBomb(ga)&&isBomb(gb);
 const bombLine=!isMega&&!isPrism&&!lineCombo&&!bombCombo&&((isBomb(ga)&&isLine(gb))||(isBomb(gb)&&isLine(ga)));
 const orient=lineCombo?(ga.special===gb.special?(ga.special==='line-h'?'h':'v'):'cross'):null;
-const groups=(isMega||isPrism||lineCombo||bombCombo||bombLine)?[]:findMatchGroups();
-if(!isMega&&!isPrism&&!lineCombo&&!bombCombo&&!bombLine&&!groups.length){
+const crateSwap=!!(ga.crate||gb.crate);
+const specialSwap=!crateSwap&&(isMega||isPrism||lineCombo||bombCombo||bombLine);
+const groups=specialSwap?[]:findMatchGroups();
+if(!specialSwap&&!groups.length){
 Snd.bad();shake(4);buzz(20);
 grid[ra][ca]=ga;grid[rb][cb]=gb;ga.r=ra;ga.c=ca;gb.r=rb;gb.c=cb;
 await animSwap(ga,gb,ga.x,ga.y,gb.x,gb.y);if(id!==runId)return;
 lastMove=null;
 busy=false;return;}
 if(mode==='classic'){moves--;bump(el.moves);}
-if(lineCombo){await lineComboBlast(rb,cb,orient,id,null)}
+if(crateSwap){await resolve(groups,[{r:rb,c:cb},{r:ra,c:ca}],id)}
+else if(lineCombo){await lineComboBlast(rb,cb,orient,id,null)}
 else if(bombCombo){await bombBombBlast(rb,cb,id)}
 else if(bombLine){const p0=cellXY(rb,cb);popup(p0.x,p0.y-cell*.4,'💣+ КРЕСТ!',true,'#ffb066');await lineComboBlast(rb,cb,'cross',id,null)}
 else if(isMega){await megaSwap(ga,gb,id)}
@@ -3147,7 +3149,7 @@ if(COL[pos.r][pos.c]>0){Snd.colHit();shake(2);return;}
 const g=grid[pos.r][pos.c];
 if(!g){Snd.rockHit();shake(2);return;}
 if(ICE[pos.r][pos.c]>0){g.iceT=.4;Snd.iceCrack();shake(2);return;}
-  if(g.crate){Snd.rockHit();shake(2);const pp=cellXY(pos.r,pos.c);popup(pp.x,pp.y,'📦 доставь вниз!',false,'#ffd9a8');return;}
+ 
 if(FIRE[pos.r+','+pos.c]||POISON[pos.r+','+pos.c]){Snd.bad();shake(2);return;}
 if(selected&&isAdj(selected,pos)){const s=selected;selected=null;dragStart=null;
 doSwap(s.r,s.c,pos.r,pos.c);return;}
@@ -3437,8 +3439,9 @@ const NEWS=[
 {id:'combos2',ico:'💣',t:'Комбо спецкамней',d:'Бомба с линией даёт крест из трёх полос и колонн, две бомбы — детонацию 5×5. Меняй спецкамни местами!'},
   {id:'slot',ico:'🎰',t:'Шахта фортуны',d:'Рулетка в «Магазине»: призы от монет до джекпоста. Первый спин дня за полцены, гарантия приза каждые 8 спинов.'},
 
+{id:'crateswap',ico:'📦',t:'Ящик можно менять!',d:'Теперь ящик меняется местами с соседним камнем, если после обмена камень соберёт линию на месте ящика. Гравитация плюс хитрые свапы — доставка груза стала настоящей головоломкой.'},
 ];
-function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
+function newsSeen(){
 function newsMarkSeen(ids){const s=new Set(newsSeen());ids.forEach(i=>s.add(i));store.set('sv-news-seen',JSON.stringify([...s]));}
 function newsBaseline(){
 if(store.get('sv-news-init','')==='1')return;
