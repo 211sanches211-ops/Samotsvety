@@ -3149,7 +3149,6 @@ if(COL[pos.r][pos.c]>0){Snd.colHit();shake(2);return;}
 const g=grid[pos.r][pos.c];
 if(!g){Snd.rockHit();shake(2);return;}
 if(ICE[pos.r][pos.c]>0){g.iceT=.4;Snd.iceCrack();shake(2);return;}
- 
 if(FIRE[pos.r+','+pos.c]||POISON[pos.r+','+pos.c]){Snd.bad();shake(2);return;}
 if(selected&&isAdj(selected,pos)){const s=selected;selected=null;dragStart=null;
 doSwap(s.r,s.c,pos.r,pos.c);return;}
