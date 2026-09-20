@@ -640,6 +640,8 @@ async function lbSubmit(m,s){if(!DB||s<=0)return false;try{
 const ref=DB.collection(lbCollection(m)).doc(playerId());
 const snap=await ref.get();const old=snap.exists?snap.data():null;
 await ref.set({name:playerName(),best:Math.max(s,old?old.best:0),runs:(old?old.runs:0)+1,at:Date.now()});
+  reserveName(playerName());
+
 return true;}catch(e){console.warn('lbSubmit error:',e);return false;}}
 function lbQueuePush(m,s){try{const a=JSON.parse(store.get('sv-lbq','[]'));
 a.push({m,s});store.set('sv-lbq',JSON.stringify(a.slice(-20)));}catch(e){}}
@@ -3459,6 +3461,8 @@ const NEWS=[
 {id:'crateswap',ico:'📦',t:'Ящик можно менять!',d:'Теперь ящик меняется местами с соседним камнем, если после обмена камень соберёт линию на месте ящика. Гравитация плюс хитрые свапы — доставка груза стала настоящей головоломкой.'},
 ];
 function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
+
+
 function newsMarkSeen(ids){const s=new Set(newsSeen());ids.forEach(i=>s.add(i));store.set('sv-news-seen',JSON.stringify([...s]));}
 function newsBaseline(){
 if(store.get('sv-news-init','')==='1')return;
@@ -3513,20 +3517,26 @@ async function nameTaken(v){
 if(!DB)return false;
 try{
 const snap=await DB.collection('names').doc(normName(v)).get();
-if(snap.exists&&snap.data().pid!==playerId())return true;
-}catch(e){}
-try{
-const cols=['lb_classic','lb_time','lb_zen','lb_surv'];
-for(const c of cols){
-const q=await DB.collection(c).where('name','==',v).limit(2).get();
-for(const d of q.docs){if(d.id!==playerId())return true;}
+if(snap.exists){
+const o=snap.data().owners||[];
+if(o.indexOf(playerId())<0)return true;
 }
 }catch(e){}
 return false;
 }
 async function reserveName(v){
 if(!DB)return;
-try{await DB.collection('names').doc(normName(v)).set({pid:playerId(),name:v,at:Date.now()},{merge:true});}catch(e){}
+try{
+const ref=DB.collection('names').doc(normName(v));
+await DB.runTransaction(async tx=>{
+const s=await tx.get(ref);
+if(!s.exists){tx.set(ref,{name:v,owners:[playerId()],at:Date.now()});}
+else{const o=s.data().owners||[];
+if(o.indexOf(playerId())<0){o.push(playerId());tx.update(ref,{owners:o});}}
+});
+}catch(e){}
+}
+e){}
 }
 async function saveNick(){
 const v=$('#nickInput').value.trim().slice(0,14);
