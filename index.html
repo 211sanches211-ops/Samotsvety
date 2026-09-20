@@ -3283,16 +3283,8 @@ $('#lbTabZ').addEventListener('click',()=>{lbMode='zen';renderLb();});
 $('#lbTabS').addEventListener('click',()=>{lbMode='surv';renderLb();});
 $('#btnHow').addEventListener('click',()=>$('#howOv').classList.remove('hidden'));
 $('#btnHowClose').addEventListener('click',()=>$('#howOv').classList.add('hidden'));
-$('#btnSettings').addEventListener('click',()=>$('#setOv').classList.remove('hidden'));
-$('#btnSetClose').addEventListener('click',async()=>{
-const v=store.get('sv-name','');
-if(v&&store.get('sv-nick-done','')==='1'&&await nameTaken(v)){
-store.set('sv-name','');store.set('sv-nick-done','0');ni.value='';
-$('#setOv').classList.add('hidden');
-showToast('⚠ Это имя занято — выбери другое');
-maybeNick();
-return;
-}
+$('#btnSettings').addEventListener('click',()=>$('#setOv').classList.remove('hidden')); $('#btnSetClose').addEventListener('click',()=>{
+$('#btnSetClose').addEventListener('click',()=>{
 $('#setOv').classList.add('hidden');
 const row=$('#devCodeRow');
 if(row){row.hidden=true;row.style.display='none';}
@@ -3536,12 +3528,13 @@ if(o.indexOf(playerId())<0){o.push(playerId());tx.update(ref,{owners:o});}}
 });
 }catch(e){}
 }
-e){}
-}
 async function saveNick(){
 const v=$('#nickInput').value.trim().slice(0,14);
 if(v.length<2){alert('Имя должно быть не короче 2 символов');return;}
-if(await nameTaken(v)){
+const isMine=store.get('sv-nick-done','')==='1'&&store.get('sv-name','')===v;
+if(!isMine&&await nameTaken(v)){
+
+  
 const suggest=v+Math.floor(Math.random()*99+1);
 if(confirm('Имя «'+v+'» уже занято.\nПопробовать «'+suggest+'»?')){
 $('#nickInput').value=suggest;
