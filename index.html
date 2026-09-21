@@ -640,6 +640,7 @@ async function lbSubmit(m,s){if(!DB||s<=0)return false;try{
 const ref=DB.collection(lbCollection(m)).doc(playerId());
 const snap=await ref.get();const old=snap.exists?snap.data():null;
 await ref.set({name:playerName(),best:Math.max(s,old?old.best:0),runs:(old?old.runs:0)+1,at:Date.now()});
+reserveName(playerName());
 return true;}catch(e){console.warn('lbSubmit error:',e);return false;}}
 function lbQueuePush(m,s){try{const a=JSON.parse(store.get('sv-lbq','[]'));
 a.push({m,s});store.set('sv-lbq',JSON.stringify(a.slice(-20)));}catch(e){}}
@@ -710,10 +711,17 @@ async function renderLb(){
     }else if(!DB){
       note='Облако ещё загружается… Подожди пару секунд и нажми «Обновить».';
     }else{
-      note='Облако пока пустое — стань первым, кто запишет результат!';
-    }
-  }
-  if(!rows.length){
+     note='Облако пока пустое — стань первым, кто запишет результат!';
+}
+}
+const agg={};
+for(const r of rows){
+const k=String(r.n||'Игрок').trim().toLowerCase().replace(/ё/g,'е');
+if(!agg[k])agg[k]={n:r.n||'Игрок',s:r.s||0,me:!!r.me};
+else{agg[k].s=Math.max(agg[k].s,r.s||0);if(r.me){agg[k].me=true;agg[k].n=r.n;}}
+}
+rows=Object.values(agg).sort((a,b)=>b.s-a.s).slice(0,10);
+if(!rows.length){
     list.innerHTML='<li><span class="nm">Пока пусто — станьте первым!</span></li>';
   }else{
     list.innerHTML=rows.map((r,i)=>
@@ -3491,29 +3499,48 @@ $('#nickOv').classList.remove('hidden');
 return;
 }
 }
-function saveNick(){
+const normName=s=>String(s).trim().toLowerCase().replace(/ё/g,'е');
+async function nameTaken(v){
+if(!DB)return false;
+try{
+const snap=await DB.collection('names').doc(normName(v)).get();
+if(snap.exists){
+const o=snap.data().owners||[];
+if(o.indexOf(playerId())<0)return true;
+}
+}catch(e){}
+return false;
+}
+async function reserveName(v){
+if(!DB)return;
+try{
+const ref=DB.collection('names').doc(normName(v));
+await DB.runTransaction(async tx=>{
+const s=await tx.get(ref);
+if(!s.exists){tx.set(ref,{name:v,owners:[playerId()],at:Date.now()});}
+else{const o=s.data().owners||[];
+if(o.indexOf(playerId())<0){o.push(playerId());tx.update(ref,{owners:o});}}
+});
+}catch(e){}
+}
+async function saveNick(){
 const v=$('#nickInput').value.trim().slice(0,14);
 if(v.length<2){alert('Имя должно быть не короче 2 символов');return;}
-let taken=false;
-try{
-const lb=JSON.parse(store.get('sv-lb','[]'))||[];
-const myOld=store.get('sv-name','');
-if(lb.some(e=>e.n===v&&e.n!==myOld)){taken=true;}
-}catch(e){}
-if(taken){
+const isMine=store.get('sv-nick-done','')==='1'&&store.get('sv-name','')===v;
+if(!isMine&&await nameTaken(v)){
 const suggest=v+Math.floor(Math.random()*99+1);
 if(confirm('Имя «'+v+'» уже занято.\nПопробовать «'+suggest+'»?')){
 $('#nickInput').value=suggest;
-return;
 }
 return;
 }
 store.set('sv-name',v);
 ni.value=v;
 store.set('sv-nick-done','1');
+reserveName(v);
 $('#nickOv').classList.add('hidden');
 Snd.init();Snd.tick();
-  maybeShowNews();
+maybeShowNews();
 }
 $('#btnNickSave').addEventListener('click',saveNick);
 $('#nickInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveNick();});
@@ -3920,16 +3947,7 @@ if(typeof Snd !== 'undefined'){ Snd.init(); }
 }, 0);
 }
 else {
-var slotHtml='<div style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:12px;text-align:center">'+
-'<div style="font-family:Unbounded,sans-serif;font-weight:700;font-size:14px;color:#ffd66b;margin-bottom:8px">🎰 Шахта фортуны</div>'+
-'<div id="slotWin" style="position:relative;height:64px;overflow:hidden;border-radius:10px;background:#0a1c2b;box-shadow:inset 0 0 0 1px rgba(255,214,107,.25);margin-bottom:8px">'+
-'<div id="slotStrip" style="display:flex;position:absolute;left:0;top:0;height:64px"></div>'+
-'<div style="position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:#ffd66b;box-shadow:0 0 10px #ffd66b"></div></div>'+
-'<div id="slotInfo" style="font-size:11px;color:#7fa5bd;margin-bottom:8px"></div>'+
-'<div id="slotResult" style="font-size:13px;color:#ffe89a;font-weight:800;min-height:18px;margin-bottom:8px"></div>'+
-'<button id="btnSlotSpin" class="btn" style="width:100%"></button></div>';
-// Магазин (как было) + слот сверху
-var shopHtml = slotHtml;
+var shopHtml = '<button id="btnSlotOpen" class="btn" style="width:100%;margin-bottom:12px">🎰 Шахта фортуны</button>';
 
     var items = [
       { id:'ham',  icon:'⛏',  name:'Молот',  price:6000 },
@@ -4018,8 +4036,8 @@ render();
     };
   }
   
-var spinBtn=ov.querySelector('#btnSlotSpin');
-if(spinBtn){slotPaint(ov);spinBtn.onclick=function(){slotSpin(ov);};}
+var slotOpen=ov.querySelector('#btnSlotOpen');
+if(slotOpen)slotOpen.onclick=function(){showSlot();};
   var closeBtn = ov.querySelector('#btnC');
 if(closeBtn) closeBtn.onclick = function(){ ov.remove(); };
 
@@ -4114,14 +4132,37 @@ var txt=slotApply(t);
 var p=(t.kind==='coins')?slotPity()+1:0;
 invStore.set('sv-slot-pity',String(p));
 if(res)res.textContent=txt;
-if(hdr)hdr.textContent='💰 Монеты: '+invCoins;
+if(hdr)hdr.textContent=invCoins;
+var hdr2=document.getElementById('invCoinsHdr');if(hdr2)hdr2.textContent='💰 Монеты: '+invCoins;
 if(t.kind==='jackpot'){if(typeof Snd!=='undefined')Snd.mega();if(typeof confetti==='function')confetti();if(typeof showToast==='function')showToast('🏆 ДЖЕКПОТ!');}
 else if(typeof Snd!=='undefined'&&Snd.on&&Snd.coins)Snd.coins();
 slotPaint(ov);
 var cells=strip.children;if(cells&&cells[TARGET])cells[TARGET].style.boxShadow='inset 0 0 0 2px #ffd66b';
 },3150);
 }
-
+function showSlot(){
+if(document.getElementById('slotOv'))return;
+var ov=document.createElement('div');
+ov.className='overlay';ov.id='slotOv';
+ov.innerHTML='<div class="plate-card" style="max-width:min(88vw,360px);text-align:center;padding:20px">'+
+'<div class="plate-ico">🎰</div>'+
+'<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(15px,3.6vw,20px);color:#ffd66b;margin-bottom:4px;text-shadow:0 2px 0 #7a4c00,0 4px 10px rgba(0,0,0,.4)">Шахта фортуны</h3>'+
+'<p style="font-size:12px;color:#7fa5bd;font-weight:800;margin-bottom:12px">💰 Монеты: <span id="slotCoins" style="color:#ffd66b">'+invCoins+'</span></p>'+
+'<div id="slotWin" style="position:relative;height:64px;overflow:hidden;border-radius:10px;background:#0a1c2b;box-shadow:inset 0 0 0 1px rgba(255,214,107,.25);margin-bottom:8px">'+
+'<div id="slotStrip" style="display:flex;position:absolute;left:0;top:0;height:64px"></div>'+
+'<div style="position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:#ffd66b;box-shadow:0 0 10px #ffd66b"></div></div>'+
+'<div id="slotInfo" style="font-size:11px;color:#7fa5bd;margin-bottom:8px"></div>'+
+'<div id="slotResult" style="font-size:13px;color:#ffe89a;font-weight:800;min-height:18px;margin-bottom:10px"></div>'+
+'<button id="btnSlotSpin" class="btn" style="width:100%"></button>'+
+'<button id="btnSlotClose" class="btn ghost" style="width:100%;margin-top:10px">Закрыть</button>'+
+'</div>';
+document.body.appendChild(ov);
+setTimeout(function(){ov.classList.add('on');},10);
+slotPaint(ov);
+ov.querySelector('#btnSlotSpin').onclick=function(){slotSpin(ov);};
+ov.querySelector('#btnSlotClose').onclick=function(){ov.remove();};
+ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+}
   function showReward(type,coins){
 if(typeof Snd !== 'undefined' && Snd.on && coins > 0){ Snd.init(); Snd.coins(); }
 if(type==='gold'&&coins>0&&Math.random()<0.10&&window.InvAPI&&InvAPI.giveGnom&&InvAPI.giveGnom()){showToast('💣 Гном-подрывник из золотого сундука!');}
