@@ -2850,7 +2850,9 @@ spx.save();spx.translate(W/2,W/2);spx.rotate(rot*0.35);spx.scale(sx,1);
 spx.drawImage(SPR[gi],-s/2,-s/2,s,s);spx.restore();
 if(flash>0)drawStar(spx,W/2,W/2-s*0.36,10+20*flash,0,flash);}
 setTimeout(()=>{const so=$('#splashOv');so.classList.add('fade');
-setTimeout(()=>{so.classList.add('hidden');splashOn=false;maybeNick();maybeShowNews();},450);},2400);
+setTimeout(()=>{so.classList.add('hidden');splashOn=false;
+if(!maybeShowFreeNote()){maybeNick();maybeShowNews();}
+},450);},2400);
 function drawMenuGems(t){const W=300,H=64;mgx.clearRect(0,0,W,H);
 const n=6,step=W/n,s=Math.min(step*.82,H*.8);
 for(let i=0;i<n;i++){const x=step*(i+.5),y=H/2+Math.sin(t*2+i*.9)*3;
@@ -3499,6 +3501,27 @@ b.addEventListener('pointerup',off,{once:true});
 b.addEventListener('pointercancel',off,{once:true});
 b.addEventListener('pointerleave',off,{once:true});
 },{passive:true});
+  // ===== РАЗОВАЯ ПЛАШКА ДЛЯ НОВИЧКОВ: ИГРА БЕСПЛАТНАЯ =====
+function maybeShowFreeNote(){
+if(store.get('sv-seen-free','')==='1')return false;
+store.set('sv-seen-free','1');
+const returning=store.get('sv-nick-done','')==='1'||store.get('sv-pid','')!=='';
+if(returning)return false;
+const ov=document.createElement('div');
+ov.className='overlay';ov.id='freeOv';
+ov.innerHTML='<div class="plate-card" style="max-width:min(88vw,380px);text-align:center;padding:22px">'+
+'<div class="plate-ico">💎</div>'+
+'<h3 style="font-family:Unbounded,sans-serif;font-weight:700;font-size:clamp(15px,3.6vw,20px);color:#ffd66b;margin-bottom:8px;text-shadow:0 2px 0 #7a4c00,0 4px 10px rgba(0,0,0,.4)">Сделано по приколу!</h3>'+
+'<p style="font-size:13.5px;line-height:1.55;color:#cfe6f4;font-weight:700;text-shadow:0 2px 0 rgba(0,0,0,.45)">Эта игра сделана для души и она абсолютно бесплатная: без покупок, рекламы и подписок. Играй в удовольствие, ставь рекорды и попадай в общий рейтинг! <span style="display:inline-block;margin-left:10px;font-size:10px;font-weight:800;letter-spacing:.08em;color:#8fb4c9;opacity:.9;white-space:nowrap;text-shadow:none">a1ex.mart</span></p>'+
+'<button id="btnFreeOk" class="btn" style="width:100%;margin-top:14px">Отлично!</button>'+
+'</div>';
+document.body.appendChild(ov);
+setTimeout(()=>ov.classList.add('on'),10);
+const bye=()=>{ov.classList.remove('on');setTimeout(()=>ov.remove(),300);maybeNick();maybeShowNews();};
+ov.querySelector('#btnFreeOk').addEventListener('click',()=>{Snd.init();Snd.tick();bye();});
+ov.addEventListener('click',e=>{if(e.target===ov)bye();});
+return true;
+}
 function maybeNick(){
 if(store.get('sv-nick-done','')!=='1'){
 $('#nickOv').classList.remove('hidden');
@@ -3779,7 +3802,7 @@ if(dvL)dvL.addEventListener('click',()=>{
 const dvR=document.getElementById('devReset');
 if(dvR)dvR.addEventListener('click',()=>{
   if(!confirm('Сбросить весь прогресс и localStorage?'))return;
- ['sv-save-v13','sv-best-classic','sv-best-time','sv-best-zen','sv-lb','sv-lbq','sv-nick-done','sv-seen-cols','sv-seen-fire','sv-seen-poison','sv-seen-cham','sv-chests','sv-coins','sv-active-skin','sv-stats-v1','sv-daily-v1','sv-lowperf','sv-theme','sv-news-seen','sv-news-init','sv-inv-dyn','sv-inv-gnom'].forEach(k=>store.del(k));
+ ['sv-save-v13','sv-best-classic','sv-best-time','sv-best-zen','sv-lb','sv-lbq','sv-nick-done','sv-seen-cols','sv-seen-fire','sv-seen-poison','sv-seen-cham','sv-chests','sv-coins','sv-active-skin','sv-stats-v1','sv-daily-v1','sv-lowperf','sv-theme','sv-news-seen','sv-news-init','sv-inv-dyn','sv-inv-gnom','sv-seen-free'].forEach(k=>store.del(k));
   location.reload();
 });
 (function dust(){
