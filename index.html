@@ -3016,7 +3016,7 @@ for(const r of fxRings){const p=r.t/.42;
 const col=r.teal?'120,240,220':(r.mega?'255,140,40':'255,190,80');
 ctx.strokeStyle=`rgba(${col},${1-p})`;
 ctx.lineWidth=(r.mega?cell*.2:cell*.12)*(1-p)+2;
-...ctx.shadowBlur=lowPerf?0:16;
+ctx.shadowColor=r.mega?'#ff7a1a':(r.teal?'#5ff2d6':'#ffb02e');ctx.shadowBlur=lowPerf?0:16;
 ctx.beginPath();ctx.arc(r.x,r.y,cell*(.4+p*(r.mega?2.2:1.7)),0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;}
 for(const p of particles){const a=1-p.t/p.ttl;
 ctx.globalAlpha=a;ctx.fillStyle=p.col;
@@ -3530,6 +3530,7 @@ const NEWS=[
   {id:'slot',ico:'🎰',t:'Шахта фортуны',d:'Рулетка в «Магазине»: призы от монет до джекпоста. Первый спин дня за полцены, гарантия приза каждые 8 спинов.'},
 
 {id:'crateswap',ico:'📦',t:'Ящик можно менять!',d:'Теперь ящик меняется местами с соседним камнем, если после обмена камень соберёт линию на месте ящика. Гравитация плюс хитрые свапы — доставка груза стала настоящей головоломкой.'},
+{id:'lowperf2',ico:'⚡',t:'Слабое устройство: большое ускорение',d:'Режим переработан: фон доски, огонь, яд и лёд рисуются из готовых спрайтов, убраны лишние тени и частицы, кадр облегчён — плавность на старых телефонах выросла в разы. Включается в Настройках → «Слабое устройство».'},
 ];
 function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
 function newsMarkSeen(ids){const s=new Set(newsSeen());ids.forEach(i=>s.add(i));store.set('sv-news-seen',JSON.stringify([...s]));}
