@@ -3271,16 +3271,16 @@ if(!started||over||busy)return;Snd.init();
 if(undoB<=0&&!isZen()){Snd.bad();return;}
 dynAim=false;hammerAim=false;swapAim=false;
 useUndo();});
-$('#btnLb').addEventListener('click',()=>openLb('classic'));
-$('#btnLb2').addEventListener('click',()=>openLb(mode));
-$('#btnLbClose').addEventListener('click',()=>$('#lbOv').classList.add('hidden'));
-$('#btnLbRefresh').addEventListener('click',()=>renderLb());
-$('#lbTabC').addEventListener('click',()=>{lbMode='classic';renderLb();});
-$('#lbTabT').addEventListener('click',()=>{lbMode='time';renderLb();});
-$('#lbTabZ').addEventListener('click',()=>{lbMode='zen';renderLb();});
-$('#lbTabS').addEventListener('click',()=>{lbMode='surv';renderLb();});
+$('#btnLb').addEventListener('click',()=>{Snd.init();Snd.tick();openLb('classic');});
+$('#btnLb2').addEventListener('click',()=>{Snd.init();Snd.tick();openLb(mode);});
+$('#btnLbClose').addEventListener('click',()=>{Snd.init();Snd.tick();$('#lbOv').classList.add('hidden');});
+$('#btnLbRefresh').addEventListener('click',()=>{Snd.init();Snd.tick();renderLb();});
+$('#lbTabC').addEventListener('click',()=>{Snd.init();Snd.tick();lbMode='classic';renderLb();});
+$('#lbTabT').addEventListener('click',()=>{Snd.init();Snd.tick();lbMode='time';renderLb();});
+$('#lbTabZ').addEventListener('click',()=>{Snd.init();Snd.tick();lbMode='zen';renderLb();});
+$('#lbTabS').addEventListener('click',()=>{Snd.init();Snd.tick();lbMode='surv';renderLb();});
 $('#btnHow').addEventListener('click',()=>{Snd.init();Snd.tick();$('#howOv').classList.remove('hidden');});
-$('#btnHowClose').addEventListener('click',()=>$('#howOv').classList.add('hidden'));
+$('#btnHowClose').addEventListener('click',()=>{Snd.init();Snd.tick();$('#howOv').classList.add('hidden');});
 $('#btnSettings').addEventListener('click',()=>{Snd.init();Snd.tick();$('#setOv').classList.remove('hidden');});
 $('#btnSetClose').addEventListener('click',()=>{
   $('#setOv').classList.add('hidden');
@@ -3289,7 +3289,7 @@ $('#btnSetClose').addEventListener('click',()=>{
   const inp=$('#devCodeInput');if(inp)inp.value='';
 });
 $('#btnAbout').addEventListener('click',()=>$('#aboutOv').classList.remove('hidden'));
-$('#btnAboutClose').addEventListener('click',()=>$('#aboutOv').classList.add('hidden'));
+$('#btnAboutClose').addEventListener('click',()=>{Snd.init();Snd.tick();$('#aboutOv').classList.add('hidden');});
 const ni=$('#nameInput');ni.value=store.get('sv-name','');
 ni.addEventListener('input',()=>store.set('sv-name',ni.value.slice(0,14)));
 const btnSound=$('#btnSound');
@@ -3404,7 +3404,7 @@ div.appendChild(b);box.appendChild(div);
 });
 }
 $('#btnDaily').addEventListener('click',()=>{Snd.init();Snd.tick();dailyLoad();renderDaily();$('#dailyOv').classList.remove('hidden');});
-$('#btnDailyClose').addEventListener('click',()=>$('#dailyOv').classList.add('hidden'));
+$('#btnDailyClose').addEventListener('click',()=>{Snd.init();Snd.tick();$('#dailyOv').classList.add('hidden');});
   // ===== СТАТИСТИКА ИГРОКА =====
 const STATS_KEY='sv-stats-v1';
 let STATS=(()=>{try{return JSON.parse(store.get(STATS_KEY,'null'))||{runs:0,maxCombo:0,chests:0,coins:0,boss:0};}catch(e){return{runs:0,maxCombo:0,chests:0,coins:0,boss:0};}})();
