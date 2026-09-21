@@ -1331,12 +1331,13 @@ if(goal.type==='crate')return'Цель: доставь 📦 ящики на ни
 if(goal.type==='color2')return'Цель: собери 2 разных цвета.';
 return'Цель: '+fmt(goal.need)+' очков.';}
 let themePref=store.get('sv-theme','auto');
+if(['auto','0','1','2','3','4'].indexOf(themePref)<0){themePref='auto';store.set('sv-theme','auto');}
 const THEME_SHORT=['Классическая','Изумрудная','Аметистовая','Рубиновая','Золотая'];
 function currentTheme(){
-if(themePref!=='auto')return clamp(parseInt(themePref)||0,4);
+if(themePref!=='auto'){const n=parseInt(themePref,10);return clamp(isNaN(n)?0:n,0,4);}
 if(isZen())return 0;
-if(isSurv())return Math.floor((wave-1)/5)%THEMES.length;
-return Math.floor((level-1)/5)%THEMES.length;
+if(isSurv())return Math.floor((wave-1)/5)%5;
+return Math.floor((level-1)/5)%5;
 }
 function applyTheme(){
 document.body.dataset.theme=String(currentTheme());
@@ -1344,23 +1345,22 @@ paintThemeBtn();
 }
 function paintThemeBtn(){
 const b=$('#btnThemeSet');if(!b)return;
-b.textContent=(themePref==='auto'?'Авто: ':'')+THEME_SHORT[currentTheme()];
+const name=THEME_SHORT[currentTheme()]||'Классическая';
+b.textContent=(themePref==='auto'?'Авто: ':'')+name;
 const cs=getComputedStyle(document.body);
-const fa=cs.getPropertyValue('--frameA').trim();
-const fb=cs.getPropertyValue('--frameB').trim();
+const fa=(cs.getPropertyValue('--frameA')||'').trim()||'#143249';
+const fb=(cs.getPropertyValue('--frameB')||'').trim()||'#0b1d2c';
 b.style.background='linear-gradient(160deg,'+fa+','+fb+')';
 b.style.boxShadow='0 4px 0 rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.18)';
 }
 $('#btnThemeSet').addEventListener('click',()=>{
-Snd.init();
+Snd.init();Snd.tick();
 const order=['auto','0','1','2','3','4'];
 let i=order.indexOf(themePref);if(i<0)i=0;
 themePref=order[(i+1)%order.length];
 store.set('sv-theme',themePref);
 applyTheme();
-Snd.tick();
 });
-
 function updateBossUI(){
 const active=(mode==='classic'||mode==='surv')&&goal&&goal.type==='boss';
 $('#bossbar').hidden=!active;
@@ -3279,9 +3279,9 @@ $('#lbTabC').addEventListener('click',()=>{lbMode='classic';renderLb();});
 $('#lbTabT').addEventListener('click',()=>{lbMode='time';renderLb();});
 $('#lbTabZ').addEventListener('click',()=>{lbMode='zen';renderLb();});
 $('#lbTabS').addEventListener('click',()=>{lbMode='surv';renderLb();});
-$('#btnHow').addEventListener('click',()=>$('#howOv').classList.remove('hidden'));
+$('#btnHow').addEventListener('click',()=>{Snd.init();Snd.tick();$('#howOv').classList.remove('hidden'));
 $('#btnHowClose').addEventListener('click',()=>$('#howOv').classList.add('hidden'));
-$('#btnSettings').addEventListener('click',()=>$('#setOv').classList.remove('hidden'));
+$('#btnSettings').addEventListener('click',()=>{Snd.init();Snd.tick();$('#setOv').classList.remove('hidden'));
 $('#btnSetClose').addEventListener('click',()=>{
   $('#setOv').classList.add('hidden');
   const row=$('#devCodeRow');
@@ -3403,7 +3403,7 @@ else{b.className='btn ghost';b.textContent=Math.min(q.done,q.need)+'/'+q.need;b.
 div.appendChild(b);box.appendChild(div);
 });
 }
-$('#btnDaily').addEventListener('click',()=>{Snd.init();dailyLoad();renderDaily();$('#dailyOv').classList.remove('hidden');});
+$('#btnDaily').addEventListener('click',()=>{Snd.init();Snd.tick();dailyLoad();renderDaily();$('#dailyOv').classList.remove('hidden');});
 $('#btnDailyClose').addEventListener('click',()=>$('#dailyOv').classList.add('hidden'));
   // ===== СТАТИСТИКА ИГРОКА =====
 const STATS_KEY='sv-stats-v1';
@@ -3484,6 +3484,10 @@ if(lowPerf){particles.length=0;glints.length=0;}
 function togglePerf(){lowPerf=!lowPerf;store.set('sv-lowperf',lowPerf?'1':'0');applyPerf();
 if(Snd.on){Snd.init();Snd.tick();}}
 $('#btnPerfSet').addEventListener('click',togglePerf);
+document.addEventListener('click',e=>{
+const c=e.target.closest?e.target.closest('#btnHowClose,#btnSetClose,#btnDailyClose,#btnStatsClose,#btnAboutClose,#btnNewsClose,#btnLbClose,#btnC,#btnSlotClose,#btnX'):null;
+if(c){Snd.init();Snd.tick();}
+},true);                                                
   document.addEventListener('pointerdown',e=>{
 const b=e.target.closest?e.target.closest('.btn'):null;
 if(!b)return;
@@ -3991,9 +3995,10 @@ var shopHtml = '<button id="btnSlotOpen" class="btn" style="width:100%;margin-bo
   var tabBoosters = ov.querySelector('#tabBoosters');
 var tabChests = ov.querySelector('#tabChests');
 var tabShop = ov.querySelector('#tabShop');
-if(tabBoosters) tabBoosters.onclick = function(){ tab = 0; render(); };
-if(tabChests)   tabChests.onclick   = function(){ tab = 1; render(); };
-if(tabShop)     tabShop.onclick     = function(){ tab = 2; render(); };
+var tabClick=function(n){return function(){tab=n;render();if(typeof Snd!=='undefined'){Snd.init();if(Snd.tick)Snd.tick();}};};
+if(tabBoosters) tabBoosters.onclick = tabClick(0);
+if(tabChests)   tabChests.onclick   = tabClick(1);
+if(tabShop)     tabShop.onclick     = tabClick(2);
   var buys = ov.querySelectorAll('.buy-btn');
   for(var b=0;b<buys.length;b++){
     buys[b].onclick = function(){
@@ -4142,6 +4147,7 @@ var cells=strip.children;if(cells&&cells[TARGET])cells[TARGET].style.boxShadow='
 }
 function showSlot(){
 if(document.getElementById('slotOv'))return;
+if(typeof Snd!=='undefined'){Snd.init();if(Snd.tick)Snd.tick();}
 var ov=document.createElement('div');
 ov.className='overlay';ov.id='slotOv';
 ov.innerHTML='<div class="plate-card" style="max-width:min(88vw,360px);text-align:center;padding:20px">'+
@@ -4187,7 +4193,9 @@ giveGnom:function(){if(invGnom>=2)return false;invGnom++;saveInv();updateBadge()
   window._onLevelComplete=function(completedLevel){if(completedLevel<1)return;var roll=Math.random();var type=null;if(roll<0.05)type='gold';else if(roll<0.15)type='silver';else if(roll<0.40)type='bronze';if(!type)return;invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();setTimeout(function(){showReward(type,0);},1500);};
 // скин при старте не применяем: его инлайн-цвета перекрывали темы
 
-setTimeout(function(){var t=document.getElementById('btnInvMenu');var g=document.getElementById('btnInvGame');if(t)t.onclick=showInv;if(g){g.onclick=showInv;updateBadge();}},1000);
+setTimeout(function(){var t=document.getElementById('btnInvMenu');var g=document.getElementById('btnInvGame');
+var openInv=function(){if(typeof Snd!=='undefined'){Snd.init();if(Snd.tick)Snd.tick();}showInv();};
+if(t)t.onclick=openInv;if(g){g.onclick=openInv;updateBadge();}},1000);
 })();
 </script>
 </body>
