@@ -837,6 +837,46 @@ sk.loading=false;if(done)done();};
 imgs.forEach((im,i)=>{im.onload=()=>{if(++loaded===imgs.length)finish();};
 im.onerror=()=>{sk.loading=false;if(done)done();};});
 imgs.forEach((im,i)=>{im.src=urls[i];});}
+  function skinTileCanvas(img,sx,sy,side){
+const cv=document.createElement('canvas');cv.width=cv.height=SPR_S;
+const x=cv.getContext('2d');
+x.drawImage(img,sx,sy,side,side,0,0,SPR_S,SPR_S);
+const corner=x.getImageData(1,1,1,1).data[3];
+if(corner<20)return cv;
+const m=document.createElement('canvas');m.width=m.height=SPR_S;
+const mx=m.getContext('2d');
+if('filter' in mx)mx.filter='blur(3px)';
+mx.fillStyle='#fff';
+const r=SPR_S*.14,p=SPR_S*.02;
+mx.beginPath();
+if(mx.roundRect)mx.roundRect(p,p,SPR_S-2*p,SPR_S-2*p,r);else mx.rect(p,p,SPR_S-2*p,SPR_S-2*p);
+mx.fill();
+x.globalCompositeOperation='destination-in';
+x.drawImage(m,0,0);
+x.globalCompositeOperation='source-over';
+return cv;}
+function skinImagesLoad(sk,done){
+if(sk.sprites||sk.loading)return done&&done();
+sk.loading=true;
+const urls=sk.files||(sk.sheet?[sk.sheet]:null);
+if(!urls){sk.loading=false;return done&&done();}
+let loaded=0;const imgs=urls.map(()=>new Image());
+const finish=()=>{
+sk.sprites=[];
+if(sk.sheet){
+const img=imgs[0],cw=img.width/(sk.cols||3),ch=img.height/(sk.rows||2);
+for(let t=0;t<TYPES;t++){
+const cx=t%(sk.cols||3),cy=Math.floor(t/(sk.cols||3))%(sk.rows||2);
+const side=Math.min(cw,ch);
+sk.sprites[t]=skinTileCanvas(img,cx*cw+(cw-side)/2,cy*ch+(ch-side)/2,side);}
+}else{
+for(let t=0;t<TYPES;t++){const im=imgs[t],side=Math.min(im.width,im.height);
+sk.sprites[t]=skinTileCanvas(im,(im.width-side)/2,(im.height-side)/2,side);}
+}
+sk.loading=false;if(done)done();};
+imgs.forEach((im)=>{im.onload=()=>{if(++loaded===imgs.length)finish();};
+im.onerror=()=>{sk.loading=false;if(done)done();};});
+imgs.forEach((im,i)=>{im.src=urls[i];});}
 function applySkinPalette(){
 const sk=SKINS[activeSkin]||SKINS.classic;
 for(let t=0;t<TYPES;t++){COLORS[t].main=sk.pal[t].main;COLORS[t].shape=sk.pal[t].shape;}
