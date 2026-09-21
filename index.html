@@ -787,7 +787,7 @@ pal:[{main:'#ff4d6d',shape:'hex'},{main:'#ffc53d',shape:'tri'},{main:'#2ee6a8',s
 runes:{id:'runes',ico:'🔮',name:'Руны',price:15000,glow:1.5,draw:drawRuneGem,
 pal:[{main:'#c026d3',shape:'rune'},{main:'#7c3aed',shape:'rune'},{main:'#22d3ee',shape:'rune'},
 {main:'#a855f7',shape:'rune'},{main:'#6366f1',shape:'rune'},{main:'#06b6d4',shape:'rune'}]},
-steampunk:{id:'steampunk',ico:'⚙️',name:'Стимпанк',price:20000,metal:1,draw:drawGearGem,
+steampunk:{id:'steampunk',ico:'⚙️',name:'Стимпанк',price:20000,metal:1,draw:drawGearGem,sheet:'skins/steampunk.png',cols:3,rows:2,
 pal:[{main:'#d97706',shape:'gear'},{main:'#b45309',shape:'gear'},{main:'#a16207',shape:'gear'},
 {main:'#ca8a04',shape:'gear'},{main:'#92400e',shape:'gear'},{main:'#eab308',shape:'gear'}]},
 };
@@ -797,12 +797,56 @@ function skinUnlocked(id){const sk=SKINS[id];if(!sk)return false;if(sk.free)retu
 try{return(JSON.parse(store.get('sv-skins-unlocked','[]'))||[]).indexOf(id)>=0;}catch(e){return false;}}
 function skinUnlock(id){try{const a=JSON.parse(store.get('sv-skins-unlocked','[]'))||[];
 if(a.indexOf(id)<0)a.push(id);store.set('sv-skins-unlocked',JSON.stringify(a));}catch(e){}}
+function skinTileCanvas(img,sx,sy,side){
+const cv=document.createElement('canvas');cv.width=cv.height=SPR_S;
+const x=cv.getContext('2d');
+x.drawImage(img,sx,sy,side,side,0,0,SPR_S,SPR_S);
+const corner=x.getImageData(1,1,1,1).data[3];
+if(corner<20)return cv; // картинка уже с прозрачностью — не трогаем
+const m=document.createElement('canvas');m.width=m.height=SPR_S;
+const mx=m.getContext('2d');
+if('filter' in mx)mx.filter='blur(3px)';
+mx.fillStyle='#fff';
+const r=SPR_S*.14,p=SPR_S*.02;
+mx.beginPath();
+if(mx.roundRect)mx.roundRect(p,p,SPR_S-2*p,SPR_S-2*p,r);else mx.rect(p,p,SPR_S-2*p,SPR_S-2*p);
+mx.fill();
+x.globalCompositeOperation='destination-in';
+x.drawImage(m,0,0);
+x.globalCompositeOperation='source-over';
+return cv;}
+function skinImagesLoad(sk,done){
+if(sk.sprites||sk.loading)return done&&done();
+sk.loading=true;
+const urls=sk.files||(sk.sheet?[sk.sheet]:null);
+if(!urls){sk.loading=false;return done&&done();}
+let loaded=0;const imgs=urls.map(()=>new Image());
+const finish=()=>{
+sk.sprites=[];
+if(sk.sheet){
+const img=imgs[0],cw=img.width/(sk.cols||3),ch=img.height/(sk.rows||2);
+for(let t=0;t<TYPES;t++){
+const cx=t%(sk.cols||3),cy=Math.floor(t/(sk.cols||3))%(sk.rows||2);
+const side=Math.min(cw,ch);
+sk.sprites[t]=skinTileCanvas(img,cx*cw+(cw-side)/2,cy*ch+(ch-side)/2,side);}
+}else{
+for(let t=0;t<TYPES;t++){const im=imgs[t],side=Math.min(im.width,im.height);
+sk.sprites[t]=skinTileCanvas(im,(im.width-side)/2,(im.height-side)/2,side);}
+}
+sk.loading=false;if(done)done();};
+imgs.forEach((im,i)=>{im.onload=()=>{if(++loaded===imgs.length)finish();};
+im.onerror=()=>{sk.loading=false;if(done)done();};});
+imgs.forEach((im,i)=>{im.src=urls[i];});}
 function applySkinPalette(){
 const sk=SKINS[activeSkin]||SKINS.classic;
 for(let t=0;t<TYPES;t++){COLORS[t].main=sk.pal[t].main;COLORS[t].shape=sk.pal[t].shape;}
 window.__skinGlow=sk.glow||1;window.__skinMetal=sk.metal||0;
-buildSprites();buildPrism();
-const mg=$('#menuGems');if(mg&&typeof drawMenuGems==='function')drawMenuGems(performance.now()/1000);}
+const rebuild=()=>{
+for(let t=0;t<TYPES;t++)SPR[t]=(sk.sprites&&sk.sprites[t])?sk.sprites[t]:makeGem(t);
+buildPrism();
+const mg=$('#menuGems');if(mg&&typeof drawMenuGems==='function')drawMenuGems(performance.now()/1000);};
+if(sk.sheet||sk.files){rebuild();skinImagesLoad(sk,rebuild);}
+else rebuild();}
 function setSkin(id,fromDev){
 if(!SKINS[id])return;
 if(!fromDev&&!skinUnlocked(id)){if(typeof showToast==='function')showToast('🔒 Скин закрыт');return;}
