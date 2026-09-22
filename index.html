@@ -1109,7 +1109,7 @@ COL_GLOW=cv;}
 function buildPoisonSpr(){
 const S=160,cv=document.createElement('canvas');cv.width=cv.height=S;
 const x=cv.getContext('2d');x.translate(S/2,S/2);
-const w=S*.475;
+const w=S*.95;
 const grad=x.createRadialGradient(0,0,w*.15,0,0,w*.62);
 grad.addColorStop(0,'rgba(90,220,90,.36)');grad.addColorStop(.55,'rgba(40,140,40,.26)');grad.addColorStop(1,'rgba(10,60,10,0)');
 x.fillStyle=grad;x.beginPath();x.arc(0,0,w*.62,0,7);x.fill();
@@ -1128,7 +1128,7 @@ POISON_SPR=cv;}
 function buildIceSpr(layers){
 const S=160,cv=document.createElement('canvas');cv.width=cv.height=S;
 const x=cv.getContext('2d');x.translate(S/2,S/2);
-const w=S*.49;
+const w=S*.98;
 const g=x.createLinearGradient(-w/2,-w/2,w/2,w/2);
 g.addColorStop(0,'rgba(235,250,255,.92)');g.addColorStop(.45,'rgba(160,220,255,.5)');g.addColorStop(1,'rgba(205,240,255,.82)');
 rr(x,-w/2,-w/2,w,w,w*.2);x.fillStyle=g;x.fill();
@@ -3004,11 +3004,11 @@ ctx.beginPath();ctx.arc(Math.cos(aa)*s*.4,Math.sin(aa)*s*.4,s*.05,0,7);ctx.fill(
 else{const spr=g.special==='mega'?MEGA:SPR[g.t];
 ctx.drawImage(spr,-s/2,-s/2,s,s);drawSpecialOverlay(g,s,t);}
 if(g.cham)drawChamOverlay(s,t);
-if(ICE[r][c]>0){const isp=ICE_SPR[ICE[r][c]];
+if(ICE[r][c]>0){const isp=lowPerf?ICE_SPR[ICE[r][c]]:null;
 if(isp){ctx.save();ctx.globalAlpha=.82+.1*Math.sin(t*3);
 ctx.drawImage(isp,-s/2,-s/2,s,s);ctx.restore();}
 else drawIceOverlay(s,ICE[r][c],t);}
-if(POISON[r+','+c]){if(POISON_SPR){ctx.save();
+if(POISON[r+','+c]){if(lowPerf&&POISON_SPR){ctx.save();
 ctx.globalAlpha=.75+.25*Math.sin(t*3);
 ctx.drawImage(POISON_SPR,-s/2,-s/2,s,s);
 for(let i=0;i<5;i++){
