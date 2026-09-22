@@ -3929,7 +3929,12 @@ if(dvS)dvS.addEventListener('click',()=>{
   }
   refreshDevInfo();
 });
-const dvGS=document.getElementById('devGemSkin');
+function skinAvailable(id){
+if(id==='classic')return true;
+const arr=SKIN_SPR[id];
+return !!(arr&&arr.some(s=>s));
+}
+  const dvGS=document.getElementById('devGemSkin');
 if(dvGS)dvGS.addEventListener('click',()=>{
 const avail=GEM_SKIN_ORDER.filter(id=>id==='classic'||skinAvailable(id));
 if(avail.length<2){if(typeof showToast==='function')showToast('⚙️ Скины не загружены: проверь файлы скинов в корне репозитория');return;}
