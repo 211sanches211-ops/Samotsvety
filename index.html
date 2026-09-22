@@ -1621,10 +1621,12 @@ for(let c=0;c<COLS;c++)if(COL[0][c]===0)cols.push(c);
 for(let i=cols.length-1;i>0;i--){const j=irnd(i+1);[cols[i],cols[j]]=[cols[j],cols[i]];}
 for(let i=0;i<n&&i<cols.length;i++){grid[0][cols[i]]=newCrate(0,cols[i]);}}
 function collectCrates(){
-if(!grid||grid.length!==ROWS)return;
+let n=0;
+if(!grid||grid.length!==ROWS)return 0;
 for(let c=0;c<COLS;c++){
 const g=grid[ROWS-1][c];
 if(g&&g.crate){
+n++;
 grid[ROWS-1][c]=null;
 const p=cellXY(ROWS-1,c);
 for(let i=0;i<14;i++){const a=rnd(Math.PI*2),sp=rnd(1.5,4)*cell;
@@ -1637,6 +1639,7 @@ if(goal&&goal.type==='crate')goal.done=Math.min(goal.need,goal.done+1);
 updateHUD();
 }
 }
+return n;
 }
 function poisonSpread(){
 if(!started||over)return;
@@ -1817,6 +1820,9 @@ b.className='banner '+cls;void b.offsetWidth;b.classList.add('show');}
 function showToast(txt){const t=$('#toast');t.textContent=txt;
 t.className='toast';void t.offsetWidth;t.classList.add('show');}
 function applyGravity(){
+let pass=0;
+while(pass<8){
+pass++;
 for(let c=0;c<COLS;c++){
 let r=ROWS-1;
 while(r>=0){
@@ -1838,7 +1844,9 @@ r=top-1;}}
 for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const g=grid[r][c];if(!g)continue;
 const p=cellXY(g.r,g.c);g.x=p.x;
 if(g.y<p.y-.5){g.falling=true;g.bounced=false}else if(!g.falling){g.y=p.y;g.vy=0}}
-collectCrates();}
+if(!collectCrates())break;
+}
+}
 function allSettled(){for(const row of grid)for(const g of row)if(g&&g.falling)return false;return true}
 function waitFall(id){return new Promise(res=>{fallRes={res,id}})}
 function expandWithSpecials(set,direct){
