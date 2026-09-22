@@ -581,6 +581,7 @@ style="width:90px;text-align:center;background:#0a1c2b;color:#eaf6ff;border:none
 <div class="setrow" style="margin-bottom:8px"><span>🧨 Динамит / 💣 Гном</span><button class="btn ghost" id="devDynGnom">+2/+2</button></div>
 <div class="setrow" style="margin-bottom:8px"><span>+100 000 очков</span><button class="btn ghost" id="devScore">+</button></div>
 <div class="setrow" style="margin-bottom:8px"><span>Супернова</span><button class="btn ghost" id="devNova">💥</button></div>
+  <div class="setrow" style="margin-bottom:8px"><span>💎 Скин камней</span><button class="btn ghost" id="devGemSkin">Классика</button></div>
 <div class="setrow" style="margin-bottom:8px"><span>Победа уровня</span><button class="btn ghost" id="devWin">🏁</button></div>
 <div class="setrow" style="margin-bottom:8px"><span>Проигрыш</span><button class="btn ghost" id="devLose">💀</button></div>
 <div class="setrow" style="margin-bottom:8px"><span>Сбросить сейв</span><button class="btn ghost" id="devReset">🗑</button></div>
@@ -906,6 +907,51 @@ x.save();x.globalAlpha=.35;x.fillStyle=shade(col,.55);
 x.beginPath();x.ellipse(R*.14,R*.72,R*.3,R*.1,0,0,7);x.fill();x.restore();
 return cv;}
 function buildSprites(){for(let t=0;t<TYPES;t++)SPR[t]=makeGem(t);}
+  // ===== СКИНЫ КАМНЕЙ (картинки, доступ только из dev) =====
+const GEM_SKIN_FILES=['skin0.png','skin1.png','skin2.png','skin3.png','skin4.png','skin5.png'];
+let gemSkin=store.get('sv-gemskin','classic');
+const SKIN_SPR=[null,null,null,null,null,null];
+let skinReady=false;
+function makeSkinSprite(img){
+const W=img.naturalWidth||img.width,H=img.naturalHeight||img.height;
+const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
+const tx=tmp.getContext('2d');tx.drawImage(img,0,0);
+let data=null;try{data=tx.getImageData(0,0,W,H);}catch(e){}
+if(data){
+const d=data.data,br=d[0],bg=d[1],bb=d[2],tol=60;
+const seen=new Uint8Array(W*H),q=new Int32Array(W*H);let qh=0,qt=0;
+const push=i=>{seen[i]=1;q[qt++]=i;};
+for(let x=0;x<W;x++){push(x);push((H-1)*W+x);}
+for(let y=0;y<H;y++){push(y*W);push(y*W+W-1);}
+while(qh<qt){const i=q[qh++],o=i*4;
+const dr=d[o]-br,dg=d[o+1]-bg,db=d[o+2]-bb;
+if(dr*dr+dg*dg+db*db>tol*tol)continue;
+d[o+3]=0;
+const x=i%W,y=(i/W)|0;
+if(x>0&&!seen[i-1])push(i-1);
+if(x<W-1&&!seen[i+1])push(i+1);
+if(y>0&&!seen[i-W])push(i-W);
+if(y<H-1&&!seen[i+W])push(i+W);}
+tx.putImageData(data,0,0);}
+const cv=document.createElement('canvas');cv.width=cv.height=SPR_S;
+const x=cv.getContext('2d');const pad=SPR_S*.04,s=SPR_S-pad*2;
+x.drawImage(tmp,pad,pad,s,s);
+return cv;}
+function loadGemSkin(cb){
+let pending=TYPES,ok=0;
+GEM_SKIN_FILES.forEach((src,t)=>{const img=new Image();
+img.onload=()=>{SKIN_SPR[t]=makeSkinSprite(img);ok++;if(--pending===0){skinReady=ok>0;if(cb)cb();}};
+img.onerror=()=>{SKIN_SPR[t]=null;if(--pending===0){skinReady=ok>0;if(cb)cb();}};
+img.src=src;});}
+function applyGemSkin(){
+for(let t=0;t<TYPES;t++)SPR[t]=(gemSkin==='steampunk'&&SKIN_SPR[t])?SKIN_SPR[t]:makeGem(t);}
+function setGemSkin(id){
+gemSkin=id;store.set('sv-gemskin',id);
+applyGemSkin();paintGemSkinBtns();
+if(typeof showToast==='function')showToast(id==='steampunk'?'⚙️ Скин: Стимпанк':'💎 Скин: Классика');}
+function paintGemSkinBtns(){
+const d=document.getElementById('devGemSkin');
+if(d)d.textContent=(gemSkin==='steampunk'?'Стимпанк':'Классика');}
 let PRISM=null;
 function buildPrism(){
 const S=SPR_S,cv=document.createElement('canvas');cv.width=cv.height=S;
@@ -3731,9 +3777,10 @@ function openDev(){
   const ov=document.getElementById('devOv');
   if(!ov)return;
   ov.classList.remove('hidden');
-  const lv=document.getElementById('devLevel');
-  if(lv)lv.value=level;
-  refreshDevInfo();
+const lv=document.getElementById('devLevel');
+if(lv)lv.value=level;
+refreshDevInfo();
+paintGemSkinBtns();
 }
 function refreshDevInfo(){
   const elD=document.getElementById('devInfo');
@@ -3862,7 +3909,12 @@ if(dvS)dvS.addEventListener('click',()=>{
   }
   refreshDevInfo();
 });
-const dvN=document.getElementById('devNova');
+const dvGS=document.getElementById('devGemSkin');
+if(dvGS)dvGS.addEventListener('click',()=>{
+if(!skinReady){if(typeof showToast==='function')showToast('⚙️ Скин не загружен: проверь skin0…skin5.png');return;}
+setGemSkin(gemSkin==='steampunk'?'classic':'steampunk');
+});
+  const dvN=document.getElementById('devNova');
 if(dvN)dvN.addEventListener('click',()=>{
   if(started && !over && !busy){
     devCheat=true;
@@ -3987,6 +4039,7 @@ dispScore+=(score-dispScore)*Math.min(1,dt*7);
 hudT-=dt;if(hudT<=0){hudT=0.05;hudFrame();}}
 new ResizeObserver(fitCanvas).observe(document.querySelector('.board-frame'));
 buildSprites();buildPrism();buildMega();buildRocks();buildCols();buildCrate();
+applyGemSkin();loadGemSkin(()=>{if(gemSkin==='steampunk')applyGemSkin();paintGemSkinBtns();});
 buildPerfSprites();
 ICE=zeroMat();ROCK=zeroMat();COL=zeroMat();FIRE={};POISON={};POISON_AGE={};goal=makeGoal(1);
 fitCanvas();genBoard();goal=makeGoal(1);introFall();
