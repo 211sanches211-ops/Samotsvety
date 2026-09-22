@@ -907,15 +907,21 @@ x.save();x.globalAlpha=.35;x.fillStyle=shade(col,.55);
 x.beginPath();x.ellipse(R*.14,R*.72,R*.3,R*.1,0,0,7);x.fill();x.restore();
 return cv;}
 function buildSprites(){for(let t=0;t<TYPES;t++)SPR[t]=makeGem(t);}
-  // ===== СКИНЫ КАМНЕЙ (картинки, доступ только из dev) =====
-const GEM_SKIN_FILES=['skin0.png','skin1.png','skin2.png','skin3.png','skin4.png','skin5.png'];
+// ===== СКИНЫ КАМНЕЙ (картинки), v2: мульти-скин =====
+const GEM_SKIN_DEFS={
+steampunk:{name:'Стимпанк',files:['skin0.png','skin1.png','skin2.png','skin3.png','skin4.png','skin5.png']},
+newclassic:{name:'New Classic',sheet:'skin-newclassic.png',map:[1,4,2,0,3,5]},
+};
+const GEM_SKIN_ORDER=['classic','steampunk','newclassic'];
 let gemSkin=store.get('sv-gemskin','classic');
-const SKIN_SPR=[null,null,null,null,null,null];
+if(GEM_SKIN_ORDER.indexOf(gemSkin)<0)gemSkin='classic';
+const SKIN_SPR={};
 let skinReady=false;
-function makeSkinSprite(img){
-const W=img.naturalWidth||img.width,H=img.naturalHeight||img.height;
+function makeSkinSprite(img,sx,sy,sw,sh){
+const W=Math.round(sw||img.naturalWidth||img.width),H=Math.round(sh||img.naturalHeight||img.height);
 const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
-const tx=tmp.getContext('2d');tx.drawImage(img,0,0);
+const tx=tmp.getContext('2d');
+tx.drawImage(img,sx||0,sy||0,sw||img.naturalWidth,sh||img.naturalHeight,0,0,W,H);
 let data=null;try{data=tx.getImageData(0,0,W,H);}catch(e){}
 if(data){
 const d=data.data,br=d[0],bg=d[1],bb=d[2],tol=60;
@@ -938,20 +944,34 @@ const x=cv.getContext('2d');const pad=SPR_S*.04,s=SPR_S-pad*2;
 x.drawImage(tmp,pad,pad,s,s);
 return cv;}
 function loadGemSkin(cb){
-let pending=TYPES,ok=0;
-GEM_SKIN_FILES.forEach((src,t)=>{const img=new Image();
-img.onload=()=>{SKIN_SPR[t]=makeSkinSprite(img);ok++;if(--pending===0){skinReady=ok>0;if(cb)cb();}};
-img.onerror=()=>{SKIN_SPR[t]=null;if(--pending===0){skinReady=ok>0;if(cb)cb();}};
+const defs=Object.keys(GEM_SKIN_DEFS);let left=defs.length;
+const fin=()=>{if(--left===0){skinReady=true;if(cb)cb();}};
+defs.forEach(id=>{const def=GEM_SKIN_DEFS[id];const out=[null,null,null,null,null,null];
+if(def.sheet){const img=new Image();
+img.onload=()=>{const cw=img.naturalWidth/3,ch=img.naturalHeight/2;
+for(let t=0;t<TYPES;t++){const ci=def.map?def.map[t]:t;const cx=ci%3,cy=(ci/3)|0;
+out[t]=makeSkinSprite(img,cx*cw,cy*ch,cw,ch);}
+SKIN_SPR[id]=out;fin();};
+img.onerror=()=>{SKIN_SPR[id]=null;fin();};
+img.src=def.sheet;}
+else{let p=TYPES;
+def.files.forEach((src,t)=>{const img=new Image();
+img.onload=()=>{out[t]=makeSkinSprite(img);if(--p===0){SKIN_SPR[id]=out;fin();}};
+img.onerror=()=>{out[t]=null;if(--p===0){SKIN_SPR[id]=out;fin();}};
 img.src=src;});}
+});}
 function applyGemSkin(){
-for(let t=0;t<TYPES;t++)SPR[t]=(gemSkin==='steampunk'&&SKIN_SPR[t])?SKIN_SPR[t]:makeGem(t);}
-function setGemSkin(id){
+const arr=SKIN_SPR[gemSkin];
+for(let t=0;t<TYPES;t++)SPR[t]=(arr&&arr[t])?arr[t]:makeGem(t);}
+function setGemSkin(id,silent){
+if(GEM_SKIN_ORDER.indexOf(id)<0)return;
 gemSkin=id;store.set('sv-gemskin',id);
 applyGemSkin();paintGemSkinBtns();
-if(typeof showToast==='function')showToast(id==='steampunk'?'⚙️ Скин: Стимпанк':'💎 Скин: Классика');}
+if(!silent&&typeof showToast==='function')
+showToast(id==='classic'?'💎 Скин: Классика':('⚙️ Скин: '+GEM_SKIN_DEFS[id].name));}
 function paintGemSkinBtns(){
 const d=document.getElementById('devGemSkin');
-if(d)d.textContent=(gemSkin==='steampunk'?'Стимпанк':'Классика');}
+if(d)d.textContent=(gemSkin==='classic'?'Классика':(GEM_SKIN_DEFS[gemSkin]?GEM_SKIN_DEFS[gemSkin].name:gemSkin));}
 let PRISM=null;
 function buildPrism(){
 const S=SPR_S,cv=document.createElement('canvas');cv.width=cv.height=S;
@@ -3911,8 +3931,10 @@ if(dvS)dvS.addEventListener('click',()=>{
 });
 const dvGS=document.getElementById('devGemSkin');
 if(dvGS)dvGS.addEventListener('click',()=>{
-if(!skinReady){if(typeof showToast==='function')showToast('⚙️ Скин не загружен: проверь skin0…skin5.png');return;}
-setGemSkin(gemSkin==='steampunk'?'classic':'steampunk');
+const avail=GEM_SKIN_ORDER.filter(id=>id==='classic'||skinAvailable(id));
+if(avail.length<2){if(typeof showToast==='function')showToast('⚙️ Скины не загружены: проверь файлы скинов в корне репозитория');return;}
+const i=avail.indexOf(gemSkin);
+setGemSkin(avail[(i+1)%avail.length]);
 });
   const dvN=document.getElementById('devNova');
 if(dvN)dvN.addEventListener('click',()=>{
