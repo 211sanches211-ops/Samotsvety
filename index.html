@@ -4116,17 +4116,26 @@ html += '</div>';
     html += bHtml;
 }
 else if(tab === 1){
-    var cHtml='';
-    for(var i=0;i<invChests.length;i++){
-      var c=invChests[i];
-      if(!c.opened){
-        var icon=c.type==='gold'?'🏆':c.type==='silver'?'🥈':'🥉';
-        cHtml+='<div class="chest-item" data-idx="'+i+'" style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:#bfe6ff;">'+icon+' '+(CHEST_RU[c.type]||c.type)+' сундук</div>';
-      }
-    }
-   if(!cHtml)cHtml='<div style="text-align:center;color:#7fa5bd;padding:20px;">Нет закрытых сундуков</div>';
+var cHtml='';
+var closedCount=0;
+for(var i=0;i<invChests.length;i++){
+var c=invChests[i];
+if(!c.opened){
+closedCount++;
+var icon=c.type==='gold'?'🏆':c.type==='silver'?'🥈':'🥉';
+cHtml+='<div class="chest-item" data-idx="'+i+'" style="background:rgba(8,22,34,.6);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;text-align:center;font-size:14px;color:#bfe6ff;">'+icon+' '+(CHEST_RU[c.type]||c.type)+' сундук</div>';
+}
+}
+if(closedCount>=2){
+cHtml='<button id="btnOpenAll" class="btn" style="width:100%;margin-bottom:10px">🎁 Открыть все ('+closedCount+')</button>'+cHtml;
+}
+if(!cHtml)cHtml='<div style="text-align:center;color:#7fa5bd;padding:20px;">Нет закрытых сундуков</div>';
 html += cHtml;
+
 setTimeout(function(){
+  var oa=ov.querySelector('#btnOpenAll');
+if(oa)oa.onclick=function(){openAllChests();};
+
     var items2 = ov.querySelectorAll('.chest-item');
     for(var k=0;k<items2.length;k++){
         items2[k].onclick=function(){
@@ -4377,7 +4386,50 @@ if(typeof Snd !== 'undefined' && Snd.on && coins > 0){ Snd.init(); Snd.coins(); 
 if(type==='gold'&&coins>0&&Math.random()<0.10&&window.InvAPI&&InvAPI.giveGnom&&InvAPI.giveGnom()){showToast('💣 Гном-подрывник из золотого сундука!');}
 
   var ov=document.createElement('div');ov.className='overlay';var icon=type==='gold'?'🏆':type==='silver'?'🥈':'🥉';if(coins===0){ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">'+(CHEST_RU[type]||'')+' сундук получен!</h3><p style="color:#bfe6ff;font-size:16px">Открой его в инвентаре</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">OK</button></div>';}else{ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px"><div class="plate-ico">'+icon+'</div><h3 style="color:#ffd66b;margin-bottom:16px">'+(CHEST_RU[type]||'')+' сундук открыт!</h3><p style="color:#ffd66b;font-size:18px">💰 +'+coins+' монет</p><button id="btnX" class="btn" style="width:100%;margin-top:16px">Забрать</button></div>';}document.body.appendChild(ov);setTimeout(function(){ov.classList.add('on');},10);document.getElementById('btnX').onclick=function(){ov.remove();};}
-function applySkin(skinId){var skins={classic:{frameA:'#143249',frameB:'#0b1d2c'},emerald:{frameA:'#1a4a3a',frameB:'#0d2c22'},ruby:{frameA:'#4a1a2a',frameB:'#2c0d1a'},amethyst:{frameA:'#3a1a4a',frameB:'#1f0d2c'}};var s=skins[skinId];if(!s)return;document.body.style.setProperty('--frameA',s.frameA);document.body.style.setProperty('--frameB',s.frameB);invStore.set('sv-active-skin',skinId);}
+function openAllChests(){
+var total=0,counts={bronze:0,silver:0,gold:0},gnomBonus=0,openedAny=false;
+for(var i=0;i<invChests.length;i++){
+var c=invChests[i];
+if(c.opened)continue;
+openedAny=true;
+c.opened=true;
+var coins=c.type==='bronze'?Math.floor(Math.random()*1500)+2000
+:c.type==='silver'?Math.floor(Math.random()*2000)+3000
+:Math.floor(Math.random()*3000)+5000;
+total+=coins;
+counts[c.type]=(counts[c.type]||0)+1;
+if(typeof statAdd==='function'){statAdd('chests',1);statAdd('coins',coins);}
+if(typeof dailyAdd==='function')dailyAdd('chest',1);
+if(c.type==='gold'&&Math.random()<0.10&&window.InvAPI&&InvAPI.giveGnom&&InvAPI.giveGnom())gnomBonus++;
+}
+if(!openedAny)return;
+invCoins+=total;
+saveInv();
+updateBadge();
+if(typeof Snd!=='undefined'&&Snd.on){Snd.init();Snd.coins();}
+showRewardAll(counts,total,gnomBonus);
+render();
+}
+function showRewardAll(counts,total,gnomBonus){
+var lines=[];
+if(counts.gold)lines.push('🏆 Золотых: '+counts.gold);
+if(counts.silver)lines.push('🥈 Серебряных: '+counts.silver);
+if(counts.bronze)lines.push('🥉 Бронзовых: '+counts.bronze);
+var ov=document.createElement('div');ov.className='overlay';
+ov.innerHTML='<div class="plate-card" style="text-align:center;padding:20px">'+
+'<div class="plate-ico">🎁</div>'+
+'<h3 style="color:#ffd66b;margin-bottom:10px">Все сундуки открыты!</h3>'+
+'<p style="color:#bfe6ff;font-size:14px;line-height:1.7;margin-bottom:10px">'+lines.join('<br>')+'</p>'+
+'<p style="color:#ffd66b;font-size:20px;font-family:Unbounded,sans-serif;margin-bottom:'+(gnomBonus?'10px':'16px')+'">💰 +'+fmt(total)+' монет</p>'+
+(gnomBonus?'<p style="color:#bfe6ff;font-size:13px;margin-bottom:14px">💣 Гном-подрывник: +'+gnomBonus+'</p>':'')+
+'<button id="btnXA" class="btn" style="width:100%">Забрать</button></div>';
+document.body.appendChild(ov);
+setTimeout(function(){ov.classList.add('on');},10);
+ov.querySelector('#btnXA').onclick=function(){ov.remove();};
+ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+}
+
+  function applySkin(skinId){var skins={classic:{frameA:'#143249',frameB:'#0b1d2c'},emerald:{frameA:'#1a4a3a',frameB:'#0d2c22'},ruby:{frameA:'#4a1a2a',frameB:'#2c0d1a'},amethyst:{frameA:'#3a1a4a',frameB:'#1f0d2c'}};var s=skins[skinId];if(!s)return;document.body.style.setProperty('--frameA',s.frameA);document.body.style.setProperty('--frameB',s.frameB);invStore.set('sv-active-skin',skinId);}
 window.InvAPI={
 coins:function(){return invCoins;},
 addCoins:function(n){invCoins+=n;saveInv();},
