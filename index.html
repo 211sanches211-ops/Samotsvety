@@ -4094,10 +4094,11 @@ function render(){
   html += '<div class="plate-card" style="max-width:370px;max-height:85vh;overflow-y:auto">';
 html += '<h3 id="invCoinsHdr" style="color:#ffd66b;margin-bottom:14px">💰 Монеты: '+invCoins+'</h3>';
  html += '<div style="display:flex;gap:8px;margin-bottom:14px">';
-html += '<button id="tabBoosters" class="btn ghost" style="flex:1;padding:8px;font-size:12px">🎁 Бустеры</button>';
-html += '<button id="tabChests" class="btn ghost" style="flex:1;padding:8px;font-size:12px">📦 Сундуки</button>';
-html += '<button id="tabShop" class="btn ghost" style="flex:1;padding:8px;font-size:12px">🛒 Магазин</button>';
+html += '<button id="tabBoosters" class="btn ghost'+(tab===0?' active':'')+'" style="flex:1;padding:8px 6px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1.1"><span style="font-size:20px;line-height:1">🎁</span><span>Бустеры</span></button>';
+html += '<button id="tabChests" class="btn ghost'+(tab===1?' active':'')+'" style="flex:1;padding:8px 6px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1.1"><span style="font-size:20px;line-height:1">📦</span><span>Сундуки</span></button>';
+html += '<button id="tabShop" class="btn ghost'+(tab===2?' active':'')+'" style="flex:1;padding:8px 6px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:3px;line-height:1.1"><span style="font-size:20px;line-height:1">🛒️</span><span>Магазин</span></button>';
 html += '</div>';
+
   if(tab === 0){
     // Бустеры (то, что куплено в запас)
     var inGame = (typeof started !== 'undefined') && started && !over;
