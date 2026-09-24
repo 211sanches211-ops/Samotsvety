@@ -4134,7 +4134,8 @@ html += cHtml;
 
 setTimeout(function(){
   var oa=ov.querySelector('#btnOpenAll');
-if(oa)oa.onclick=function(){openAllChests();};
+if(oa)oa.onclick=function(){openAllChests();render();};
+
 
     var items2 = ov.querySelectorAll('.chest-item');
     for(var k=0;k<items2.length;k++){
@@ -4408,8 +4409,8 @@ saveInv();
 updateBadge();
 if(typeof Snd!=='undefined'&&Snd.on){Snd.init();Snd.coins();}
 showRewardAll(counts,total,gnomBonus);
-render();
 }
+
 function showRewardAll(counts,total,gnomBonus){
 var lines=[];
 if(counts.gold)lines.push('🏆 Золотых: '+counts.gold);
