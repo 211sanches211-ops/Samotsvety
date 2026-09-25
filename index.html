@@ -612,13 +612,14 @@ const SAVE_KEY='sv-save-v13';
 const THEMES=['Лазурный штрек','Изумрудный грот','Аметистовая пещера','Рубиновый штрек','Золотая галерея'];
 const CHEST_RU={bronze:'Бронзовый',silver:'Серебряный',gold:'Золотой'};
 const COLORS=[
-{main:'#ff4d6d',shape:'hex',name:'Рубин'},
-{main:'#ffc53d',shape:'tri',name:'Топаз'},
-{main:'#2ee6a8',shape:'oct',name:'Изумруд'},
-{main:'#3aa0ff',shape:'round',name:'Сапфир'},
-{main:'#b06bff',shape:'penta',name:'Аметист'},
-{main:'#37e0e8',shape:'diamond',name:'Аквамарин'},
+{main:'#ff2e78',shape:'hex',name:'Рубин'},
+{main:'#ffc300',shape:'tri',name:'Топаз'},
+{main:'#06e6a0',shape:'oct',name:'Изумруд'},
+{main:'#00a8ff',shape:'round',name:'Сапфир'},
+{main:'#b44cff',shape:'penta',name:'Аметист'},
+{main:'#00e5ff',shape:'diamond',name:'Аквамарин'},
 ];
+
 const key=(r,c)=>r+','+c;
 const FB_CFG={apiKey:"AIzaSyAys9JCOo8kH1pgCs_ws_t80Yle6-2cdsM",authDomain:"samotsvety-92711.firebaseapp.com",projectId:"samotsvety-92711",storageBucket:"samotsvety-92711.firebasestorage.app",messagingSenderId:"533420958666",appId:"1:533420958666:web:4c8c186e75411694bb2533"};
 let DB=null;
@@ -838,7 +839,9 @@ let boardPx=0, cell=0, dpr=1;
 function shade(hex,amt){const n=parseInt(hex.slice(1),16);let r=n>>16&255,g=n>>8&255,b=n&255;
 if(amt>=0){r+=(255-r)*amt;g+=(255-g)*amt;b+=(255-b)*amt}else{r*=1+amt;g*=1+amt;b*=1+amt}
 return `rgb(${r|0},${g|0},${b|0})`;}
+function rgba(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
 function polyPts(n,R,a0){const a=[];for(let i=0;i<n;i++){const t=(a0+i*360/n)*Math.PI/180;
+
 a.push([Math.cos(t)*R,Math.sin(t)*R])}return a;}
 function shapePts(kind,R){switch(kind){
 case 'hex':return polyPts(6,R,-90);
@@ -856,12 +859,17 @@ const S=SPR_S,cv=document.createElement('canvas');cv.width=cv.height=S;
 const x=cv.getContext('2d'),col=COLORS[t].main,R=S*.385,pts=shapePts(COLORS[t].shape,R);
 x.translate(S/2,S/2);x.lineJoin='round';
 const P=sc=>pathShape(x,pts?pts.map(p=>[p[0]*sc,p[1]*sc]):null,R*sc);
-x.save();x.shadowColor=col;x.shadowBlur=S*.10;
-P(1);x.fillStyle=shade(col,-.55);x.fill();x.restore();
+x.save();x.shadowColor=col;x.shadowBlur=S*.16;P(1);x.fillStyle=shade(col,-.5);x.fill();x.restore();
 let g=x.createRadialGradient(-R*.38,-R*.48,R*.08,0,R*.1,R*1.5);
-g.addColorStop(0,shade(col,.72));g.addColorStop(.28,shade(col,.28));
-g.addColorStop(.62,col);g.addColorStop(1,shade(col,-.62));
+g.addColorStop(0,shade(col,.85));g.addColorStop(.28,shade(col,.4));
+g.addColorStop(.62,col);g.addColorStop(1,shade(col,-.55));
 P(1);x.fillStyle=g;x.fill();
+x.save();P(1);x.clip();
+x.globalCompositeOperation='lighter';
+const core=x.createRadialGradient(0,R*.08,R*.02,0,R*.08,R*.85);
+core.addColorStop(0,rgba(col,.5));core.addColorStop(.45,rgba(col,.2));core.addColorStop(1,'rgba(0,0,0,0)');
+x.fillStyle=core;x.fillRect(-R*1.3,-R*1.3,R*2.6,R*2.6);
+x.restore();
 if(pts){
 const n=pts.length, inner=pts.map(p=>[p[0]*.52,p[1]*.52]);
 for(let i=0;i<n;i++){
@@ -870,42 +878,47 @@ const ma=Math.atan2((p1[1]+p2[1])/2,(p1[0]+p2[0])/2);
 let b=(Math.cos(ma+Math.PI*.75)+1)/2;
 x.beginPath();x.moveTo(p1[0],p1[1]);x.lineTo(p2[0],p2[1]);
 x.lineTo(i2[0],i2[1]);x.lineTo(i1[0],i1[1]);x.closePath();
-x.fillStyle=b>.5?`rgba(255,255,255,${(b-.5)*.5})`:`rgba(4,10,20,${(.5-b)*.55})`;
+x.fillStyle=b>.5?`rgba(255,255,255,${(b-.5)*.6})`:`rgba(4,10,20,${(.5-b)*.5})`;
 x.fill();}
 x.beginPath();x.moveTo(inner[0][0],inner[0][1]);
 for(const p of inner)x.lineTo(p[0],p[1]);x.closePath();
 const tg=x.createLinearGradient(-R*.5,-R*.5,R*.5,R*.5);
-tg.addColorStop(0,shade(col,.85));tg.addColorStop(.5,shade(col,.35));tg.addColorStop(1,shade(col,-.25));
+tg.addColorStop(0,shade(col,.9));tg.addColorStop(.5,shade(col,.45));tg.addColorStop(1,shade(col,-.2));
 x.fillStyle=tg;x.fill();
-x.lineWidth=S*.008;x.strokeStyle='rgba(255,255,255,.35)';x.stroke();
-x.lineWidth=S*.006;x.strokeStyle='rgba(255,255,255,.15)';x.beginPath();
+x.lineWidth=S*.008;x.strokeStyle='rgba(255,255,255,.45)';x.stroke();
+x.lineWidth=S*.006;x.strokeStyle='rgba(255,255,255,.2)';x.beginPath();
 for(let i=0;i<n;i++){x.moveTo(pts[i][0],pts[i][1]);x.lineTo(inner[i][0],inner[i][1])}x.stroke();
 }else{
 const sg=x.createRadialGradient(-R*.35,-R*.4,R*.05,0,0,R*1.05);
-sg.addColorStop(0,'rgba(255,255,255,.55)');sg.addColorStop(.35,'rgba(255,255,255,.06)');
-sg.addColorStop(.72,'rgba(0,0,0,.18)');sg.addColorStop(1,'rgba(0,0,0,.5)');
+sg.addColorStop(0,'rgba(255,255,255,.7)');sg.addColorStop(.35,'rgba(255,255,255,.12)');
+sg.addColorStop(.72,'rgba(0,0,0,.16)');sg.addColorStop(1,'rgba(0,0,0,.45)');
 x.beginPath();x.arc(0,0,R,0,7);x.fillStyle=sg;x.fill();
-x.strokeStyle='rgba(255,255,255,.16)';x.lineWidth=S*.007;x.beginPath();
+x.strokeStyle='rgba(255,255,255,.22)';x.lineWidth=S*.007;x.beginPath();
 for(let i=0;i<6;i++){const a=i*Math.PI/3;
 x.moveTo(Math.cos(a)*R*.28,Math.sin(a)*R*.28);x.lineTo(Math.cos(a)*R*.95,Math.sin(a)*R*.95)}x.stroke();
-x.beginPath();x.arc(0,0,R*.28,0,7);x.strokeStyle='rgba(255,255,255,.25)';x.stroke();}
+x.beginPath();x.arc(0,0,R*.28,0,7);x.strokeStyle='rgba(255,255,255,.32)';x.stroke();}
 const vg=x.createRadialGradient(0,-R*.2,R*.2,0,R*.15,R*1.25);
-vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(2,8,16,.45)');
+vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(2,8,16,.4)');
 P(1);x.fillStyle=vg;x.fill();
 const eg=x.createLinearGradient(-R,-R,R,R);
-eg.addColorStop(0,'rgba(255,255,255,.75)');eg.addColorStop(.45,'rgba(255,255,255,.15)');
-eg.addColorStop(.6,'rgba(0,0,0,.25)');eg.addColorStop(1,'rgba(0,0,0,.5)');
+eg.addColorStop(0,'rgba(255,255,255,.9)');eg.addColorStop(.45,'rgba(255,255,255,.25)');
+eg.addColorStop(.6,'rgba(0,0,0,.22)');eg.addColorStop(1,'rgba(0,0,0,.45)');
 P(1);x.lineWidth=S*.03;x.strokeStyle=eg;x.stroke();
 P(1.02);x.lineWidth=S*.014;x.strokeStyle='rgba(5,10,20,.55)';x.stroke();
+x.save();x.shadowColor=col;x.shadowBlur=S*.08;
+x.strokeStyle=rgba(col,.55);x.lineWidth=S*.012;P(1);x.stroke();x.restore();
 x.save();x.translate(-R*.34,-R*.46);x.rotate(-.6);x.scale(1,.48);
-x.shadowColor='rgba(255,255,255,.95)';x.shadowBlur=S*.05;
-x.fillStyle='rgba(255,255,255,.85)';
-x.beginPath();x.ellipse(0,0,R*.3,R*.16,0,0,7);x.fill();x.restore();
+x.shadowColor='rgba(255,255,255,.95)';x.shadowBlur=S*.07;
 x.fillStyle='rgba(255,255,255,.95)';
-x.beginPath();x.arc(-R*.14,-R*.64,R*.045,0,7);x.fill();
+x.beginPath();x.ellipse(0,0,R*.34,R*.18,0,0,7);x.fill();x.restore();
+x.fillStyle='#fff';
+x.beginPath();x.arc(-R*.14,-R*.64,R*.06,0,7);x.fill();
+x.fillStyle='rgba(255,255,255,.9)';
+x.beginPath();x.arc(R*.3,-R*.3,R*.035,0,7);x.fill();
 x.save();x.globalAlpha=.35;x.fillStyle=shade(col,.55);
 x.beginPath();x.ellipse(R*.14,R*.72,R*.3,R*.1,0,0,7);x.fill();x.restore();
 return cv;}
+
 function buildSprites(){for(let t=0;t<TYPES;t++)SPR[t]=makeGem(t);}
 // ===== СКИНЫ КАМНЕЙ (картинки), v2: мульти-скин =====
 const GEM_SKIN_DEFS={
