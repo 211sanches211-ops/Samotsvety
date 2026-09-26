@@ -3695,21 +3695,14 @@ return;
 }
 }
 const normName=s=>String(s).trim().toLowerCase().replace(/ё/g,'е');
-  function takenNames(){try{return JSON.parse(store.get('sv-taken-names','[]'))||[];}catch(e){return [];}}
+function takenNames(){try{return JSON.parse(store.get('sv-taken-names','[]'))||[];}catch(e){return [];}}
 function markTaken(v){const n=normName(v);const a=takenNames();if(a.indexOf(n)<0){a.push(n);store.set('sv-taken-names',JSON.stringify(a.slice(-500)));}}
 function isLocallyTaken(v){return takenNames().indexOf(normName(v))>=0;}
-  function queueName(v){try{const a=JSON.parse(store.get('sv-nameq','[]'))||[];
-if(a.indexOf(v)<0){a.push(v);store.set('sv-nameq',JSON.stringify(a.slice(-10)));}}catch(e){}}
-async function flushNames(){
-if(!DB)return;
-let a;try{a=JSON.parse(store.get('sv-nameq','[]'))||[];}catch(e){a=[];}
-if(!a.length)return;
-const left=[];
-for(const n of a){const r=await reserveName(n);if(r==='offline'||r==='error')left.push(n);}
-store.set('sv-nameq',JSON.stringify(left.slice(-10)));
-}
-if(store.get('sv-taken-fix','')!=='1'){store.del('sv-taken-names');store.set('sv-taken-fix','1');}
-function suggestFree(base){let i=1;while(true){const c=base+i;if(!isLocallyTaken(c))return c;i++;}}
+function suggestFree(base,original){
+let b=base.replace(/[0-9]+$/,'');if(b.length<2)b=base;
+for(let i=1;i<500;i++){const c=b+i;
+if(c!==original&&!isLocallyTaken(c))return c;}
+return b+(Date.now()%1000);}
 async function nameTaken(v){
 if(isLocallyTaken(v))return true;
 if(!DB)return false;
@@ -3720,63 +3713,56 @@ const o=snap.data().owners||[];
 if(o.indexOf(playerId())<0){markTaken(v);return true;}
 }
 }catch(e){}
-return false;
-}
+return false;}
 async function reserveName(v){
 if(!DB)return 'offline';
 try{
 const ref=DB.collection('names').doc(normName(v));
-let ok=false;
 await DB.runTransaction(async tx=>{
 const s=await tx.get(ref);
-if(!s.exists){tx.set(ref,{name:v,owners:[playerId()],at:Date.now()});ok=true;}
+if(!s.exists){tx.set(ref,{name:v,owners:[playerId()],at:Date.now()});}
 else{const o=s.data().owners||[];
-if(o.indexOf(playerId())<0){throw new Error('taken');}
-ok=true;}
+if(o.indexOf(playerId())<0){throw new Error('taken');}}
 });
 return 'ok';
 }catch(e){
 if(e&&e.message==='taken'){markTaken(v);return 'taken';}
 console.warn('reserveName error:',e);
 return 'error';
-}
-}
+}}
+function queueName(v){try{const a=JSON.parse(store.get('sv-nameq','[]'))||[];
+if(a.indexOf(v)<0){a.push(v);store.set('sv-nameq',JSON.stringify(a.slice(-10)));}}catch(e){}}
+async function flushNames(){
+if(!DB)return;
+let a;try{a=JSON.parse(store.get('sv-nameq','[]'))||[];}catch(e){a=[];}
+if(!a.length)return;
+const left=[];
+for(const n of a){const r=await reserveName(n);if(r==='offline'||r==='error')left.push(n);}
+store.set('sv-nameq',JSON.stringify(left.slice(-10)));}
+if(store.get('sv-taken-fix','')!=='1'){store.del('sv-taken-names');store.set('sv-taken-fix','1');}
 async function saveNick(){
 const v=$('#nickInput').value.trim().slice(0,14);
 if(v.length<2){alert('Имя должно быть не короче 2 символов');return;}
 const isMine=store.get('sv-nick-done','')==='1'&&normName(store.get('sv-name',''))===normName(v);
-// Для новичков и при смене имени — полная проверка (локаль + облако)
 if(!isMine){
 if(await nameTaken(v)){
-const suggest=suggestFree(v.replace(/[0-9]+$/,''));
-if(confirm('Имя «'+v+'» уже занято другим игроком.\nПопробовать «'+suggest+'»?')){
-$('#nickInput').value=suggest;
-}
-return;
-}
-// Атомарно резервируем в облаке; если кто-то успел раньше — предлагаем другое
+const suggest=suggestFree(v,v);
+if(confirm('Имя «'+v+'» уже занято другим игроком.\nПопробовать «'+suggest+'»?')){$('#nickInput').value=suggest;}
+return;}
 const res=await reserveName(v);
 if(res==='taken'){
-const suggest=suggestFree(v.replace(/[0-9]+$/,''));
-if(confirm('Имя «'+v+'» только что заняли.\nПопробовать «'+suggest+'»?')){
-$('#nickInput').value=suggest;
-}
-return;
-}
-if(res!=='ok'){queueName(v);}
-const suggest=suggestFree(v.replace(/[0-9]+$/,''));
-if(confirm('Имя «'+v+'» только что заняли.\nПопробовать «'+suggest+'»?')){
-$('#nickInput').value=suggest;
-}
-return;
+const suggest=suggestFree(v,v);
+if(confirm('Имя «'+v+'» только что заняли.\nПопробовать «'+suggest+'»?')){$('#nickInput').value=suggest;}
+return;}
+if(res!=='ok')queueName(v);
 }
 store.set('sv-name',v);
 ni.value=v;
 store.set('sv-nick-done','1');
 $('#nickOv').classList.add('hidden');
 Snd.init();Snd.tick();
-maybeShowNews();
-}
+maybeShowNews();}
+
 $('#btnNickSave').addEventListener('click',saveNick);
 $('#nickInput').addEventListener('keydown',e=>{if(e.key==='Enter')saveNick();});
 maybeNick();
