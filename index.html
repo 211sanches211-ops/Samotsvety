@@ -662,6 +662,8 @@ async function lbFlush(){
     if(sent>=5)break;
   }
   store.set('sv-lbq',JSON.stringify(left.slice(-20)));
+flushNames();
+}
 }
 async function lbTop(m){
   if(!DB)return null;
@@ -3697,6 +3699,17 @@ const normName=s=>String(s).trim().toLowerCase().replace(/ё/g,'е');
   function takenNames(){try{return JSON.parse(store.get('sv-taken-names','[]'))||[];}catch(e){return [];}}
 function markTaken(v){const n=normName(v);const a=takenNames();if(a.indexOf(n)<0){a.push(n);store.set('sv-taken-names',JSON.stringify(a.slice(-500)));}}
 function isLocallyTaken(v){return takenNames().indexOf(normName(v))>=0;}
+  function queueName(v){try{const a=JSON.parse(store.get('sv-nameq','[]'))||[];
+if(a.indexOf(v)<0){a.push(v);store.set('sv-nameq',JSON.stringify(a.slice(-10)));}}catch(e){}}
+async function flushNames(){
+if(!DB)return;
+let a;try{a=JSON.parse(store.get('sv-nameq','[]'))||[];}catch(e){a=[];}
+if(!a.length)return;
+const left=[];
+for(const n of a){const r=await reserveName(n);if(r==='offline'||r==='error')left.push(n);}
+store.set('sv-nameq',JSON.stringify(left.slice(-10)));
+}
+if(store.get('sv-taken-fix','')!=='1'){store.del('sv-taken-names');store.set('sv-taken-fix','1');}
 function suggestFree(base){let i=1;while(true){const c=base+i;if(!isLocallyTaken(c))return c;i++;}}
 async function nameTaken(v){
 if(isLocallyTaken(v))return true;
@@ -3711,13 +3724,24 @@ if(o.indexOf(playerId())<0){markTaken(v);return true;}
 return false;
 }
 async function reserveName(v){
-if(!DB)return false;
+if(!DB)return 'offline';
 try{
 const ref=DB.collection('names').doc(normName(v));
 let ok=false;
 await DB.runTransaction(async tx=>{
 const s=await tx.get(ref);
 if(!s.exists){tx.set(ref,{name:v,owners:[playerId()],at:Date.now()});ok=true;}
+else{const o=s.data().owners||[];
+if(o.indexOf(playerId())<0){throw new Error('taken');}
+ok=true;}
+});
+return 'ok';
+}catch(e){
+if(e&&e.message==='taken'){markTaken(v);return 'taken';}
+console.warn('reserveName error:',e);
+return 'error';
+}
+}
 else{const o=s.data().owners||[];
 if(o.indexOf(playerId())<0){throw new Error('taken');}
 ok=true;}
@@ -3739,8 +3763,16 @@ $('#nickInput').value=suggest;
 return;
 }
 // Атомарно резервируем в облаке; если кто-то успел раньше — предлагаем другое
-const reserved=await reserveName(v);
-if(!reserved){
+const res=await reserveName(v);
+if(res==='taken'){
+const suggest=suggestFree(v.replace(/[0-9]+$/,''));
+if(confirm('Имя «'+v+'» уже занято другим игроком.
+Попробовать «'+suggest+'»?')){
+$('#nickInput').value=suggest;
+}
+return;
+}
+if(res!=='ok'){queueName(v);}
 const suggest=suggestFree(v.replace(/[0-9]+$/,''));
 if(confirm('Имя «'+v+'» только что заняли.\nПопробовать «'+suggest+'»?')){
 $('#nickInput').value=suggest;
