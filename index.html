@@ -925,8 +925,10 @@ function buildSprites(){for(let t=0;t<TYPES;t++)SPR[t]=makeGem(t);}
 const GEM_SKIN_DEFS={
 steampunk:{name:'Стимпанк',files:['skin0.png','skin1.png','skin2.png','skin3.png','skin4.png','skin5.png']},
 newclassic:{name:'New Classic',sheet:'skin-newclassic.png',map:[1,4,2,0,3,5]},
+bright:{name:'Сияние',sheet:'skin-bright.png',cols:6,rows:1,map:[0,1,2,3,4,5]},
 };
-const GEM_SKIN_ORDER=['classic','steampunk','newclassic'];
+const GEM_SKIN_ORDER=['classic','steampunk','newclassic','bright'];
+
 let gemSkin=store.get('sv-gemskin','classic');
 if(GEM_SKIN_ORDER.indexOf(gemSkin)<0)gemSkin='classic';
 const SKIN_SPR={};
@@ -938,14 +940,15 @@ const tx=tmp.getContext('2d');
 tx.drawImage(img,sx||0,sy||0,sw||img.naturalWidth,sh||img.naturalHeight,0,0,W,H);
 let data=null;try{data=tx.getImageData(0,0,W,H);}catch(e){}
 if(data){
-const d=data.data,br=d[0],bg=d[1],bb=d[2],tol=60;
+const d=data.data,br=d[0],bg=d[1],bb=d[2],tol=60,bA=d[3];
 const seen=new Uint8Array(W*H),q=new Int32Array(W*H);let qh=0,qt=0;
 const push=i=>{seen[i]=1;q[qt++]=i;};
 for(let x=0;x<W;x++){push(x);push((H-1)*W+x);}
 for(let y=0;y<H;y++){push(y*W);push(y*W+W-1);}
 while(qh<qt){const i=q[qh++],o=i*4;
-const dr=d[o]-br,dg=d[o+1]-bg,db=d[o+2]-bb;
-if(dr*dr+dg*dg+db*db>tol*tol)continue;
+if(bA<10){if(d[o+3]>=10)continue;}
+else{const dr=d[o]-br,dg=d[o+1]-bg,db=d[o+2]-bb;
+if(dr*dr+dg*dg+db*db>tol*tol)continue;}
 d[o+3]=0;
 const x=i%W,y=(i/W)|0;
 if(x>0&&!seen[i-1])push(i-1);
@@ -953,19 +956,29 @@ if(x<W-1&&!seen[i+1])push(i+1);
 if(y>0&&!seen[i-W])push(i-W);
 if(y<H-1&&!seen[i+W])push(i+W);}
 tx.putImageData(data,0,0);}
+let minX=W,minY=H,maxX=-1,maxY=-1;
+if(data){const dd=data.data;
+for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(dd[(y*W+x)*4+3]>8){
+if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}}}
+if(maxX<0){minX=0;minY=0;maxX=W-1;maxY=H-1;}
+const bw=maxX-minX+1,bh=maxY-minY+1;
 const cv=document.createElement('canvas');cv.width=cv.height=SPR_S;
-const x=cv.getContext('2d');const pad=SPR_S*.04,s=SPR_S-pad*2;
-x.drawImage(tmp,pad,pad,s,s);
+const x=cv.getContext('2d');const pad=SPR_S*.05,s=SPR_S-pad*2;
+const sc=Math.min(s/bw,s/bh),dw=bw*sc,dh=bh*sc;
+x.drawImage(tmp,minX,minY,bw,bh,(SPR_S-dw)/2,(SPR_S-dh)/2,dw,dh);
 return cv;}
+
 function loadGemSkin(cb){
 const defs=Object.keys(GEM_SKIN_DEFS);let left=defs.length;
 const fin=()=>{if(--left===0){skinReady=true;if(cb)cb();}};
 defs.forEach(id=>{const def=GEM_SKIN_DEFS[id];const out=[null,null,null,null,null,null];
 if(def.sheet){const img=new Image();
-img.onload=()=>{const cw=img.naturalWidth/3,ch=img.naturalHeight/2;
-for(let t=0;t<TYPES;t++){const ci=def.map?def.map[t]:t;const cx=ci%3,cy=(ci/3)|0;
+img.onload=()=>{const cn=def.cols||3,rn=def.rows||2;
+const cw=img.naturalWidth/cn,ch=img.naturalHeight/rn;
+for(let t=0;t<TYPES;t++){const ci=def.map?def.map[t]:t;const cx=ci%cn,cy=(ci/cn)|0;
 out[t]=makeSkinSprite(img,cx*cw,cy*ch,cw,ch);}
 SKIN_SPR[id]=out;fin();};
+
 img.onerror=()=>{SKIN_SPR[id]=null;fin();};
 img.src=def.sheet;}
 else{let p=TYPES;
