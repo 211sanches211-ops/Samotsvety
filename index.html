@@ -3694,44 +3694,63 @@ return;
 }
 }
 const normName=s=>String(s).trim().toLowerCase().replace(/ё/g,'е');
+  function takenNames(){try{return JSON.parse(store.get('sv-taken-names','[]'))||[];}catch(e){return [];}}
+function markTaken(v){const n=normName(v);const a=takenNames();if(a.indexOf(n)<0){a.push(n);store.set('sv-taken-names',JSON.stringify(a.slice(-500)));}}
+function isLocallyTaken(v){return takenNames().indexOf(normName(v))>=0;}
+function suggestFree(base){let i=1;while(true){const c=base+i;if(!isLocallyTaken(c))return c;i++;}}
 async function nameTaken(v){
+if(isLocallyTaken(v))return true;
 if(!DB)return false;
 try{
 const snap=await DB.collection('names').doc(normName(v)).get();
 if(snap.exists){
 const o=snap.data().owners||[];
-if(o.indexOf(playerId())<0)return true;
+if(o.indexOf(playerId())<0){markTaken(v);return true;}
 }
 }catch(e){}
 return false;
 }
 async function reserveName(v){
-if(!DB)return;
+if(!DB)return false;
 try{
 const ref=DB.collection('names').doc(normName(v));
+let ok=false;
 await DB.runTransaction(async tx=>{
 const s=await tx.get(ref);
-if(!s.exists){tx.set(ref,{name:v,owners:[playerId()],at:Date.now()});}
+if(!s.exists){tx.set(ref,{name:v,owners:[playerId()],at:Date.now()});ok=true;}
 else{const o=s.data().owners||[];
-if(o.indexOf(playerId())<0){o.push(playerId());tx.update(ref,{owners:o});}}
+if(o.indexOf(playerId())<0){throw new Error('taken');}
+ok=true;}
 });
-}catch(e){}
+return ok;
+}catch(e){markTaken(v);return false;}
 }
 async function saveNick(){
 const v=$('#nickInput').value.trim().slice(0,14);
 if(v.length<2){alert('Имя должно быть не короче 2 символов');return;}
-const isMine=store.get('sv-nick-done','')==='1'&&store.get('sv-name','')===v;
-if(!isMine&&await nameTaken(v)){
-const suggest=v+Math.floor(Math.random()*99+1);
-if(confirm('Имя «'+v+'» уже занято.\nПопробовать «'+suggest+'»?')){
+const isMine=store.get('sv-nick-done','')==='1'&&normName(store.get('sv-name',''))===normName(v);
+// Для новичков и при смене имени — полная проверка (локаль + облако)
+if(!isMine){
+if(await nameTaken(v)){
+const suggest=suggestFree(v.replace(/[0-9]+$/,''));
+if(confirm('Имя «'+v+'» уже занято другим игроком.\nПопробовать «'+suggest+'»?')){
 $('#nickInput').value=suggest;
 }
 return;
 }
+// Атомарно резервируем в облаке; если кто-то успел раньше — предлагаем другое
+const reserved=await reserveName(v);
+if(!reserved){
+const suggest=suggestFree(v.replace(/[0-9]+$/,''));
+if(confirm('Имя «'+v+'» только что заняли.\nПопробовать «'+suggest+'»?')){
+$('#nickInput').value=suggest;
+}
+return;
+}
+}
 store.set('sv-name',v);
 ni.value=v;
 store.set('sv-nick-done','1');
-reserveName(v);
 $('#nickOv').classList.add('hidden');
 Snd.init();Snd.tick();
 maybeShowNews();
