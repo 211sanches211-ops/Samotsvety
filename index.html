@@ -3741,13 +3741,6 @@ console.warn('reserveName error:',e);
 return 'error';
 }
 }
-else{const o=s.data().owners||[];
-if(o.indexOf(playerId())<0){throw new Error('taken');}
-ok=true;}
-});
-return ok;
-}catch(e){markTaken(v);return false;}
-}
 async function saveNick(){
 const v=$('#nickInput').value.trim().slice(0,14);
 if(v.length<2){alert('Имя должно быть не короче 2 символов');return;}
