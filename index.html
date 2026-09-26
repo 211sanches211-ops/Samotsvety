@@ -3758,8 +3758,7 @@ return;
 const res=await reserveName(v);
 if(res==='taken'){
 const suggest=suggestFree(v.replace(/[0-9]+$/,''));
-if(confirm('Имя «'+v+'» уже занято другим игроком.
-Попробовать «'+suggest+'»?')){
+if(confirm('Имя «'+v+'» только что заняли.\nПопробовать «'+suggest+'»?')){
 $('#nickInput').value=suggest;
 }
 return;
