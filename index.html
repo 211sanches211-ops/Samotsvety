@@ -925,7 +925,7 @@ function buildSprites(){for(let t=0;t<TYPES;t++)SPR[t]=makeGem(t);}
 const GEM_SKIN_DEFS={
 steampunk:{name:'Стимпанк',files:['skin0.png','skin1.png','skin2.png','skin3.png','skin4.png','skin5.png']},
 newclassic:{name:'New Classic',sheet:'skin-newclassic.png',map:[1,4,2,0,3,5]},
-bright:{name:'Сияние',sheet:'skin-bright.png',cols:6,rows:1,map:[0,1,2,3,4,5]},
+bright:{name:'Сияние',sheet:'skin-bright.png',cols:3,rows:2,map:[0,2,1,3,5,4],dim:.22},
 };
 const GEM_SKIN_ORDER=['classic','steampunk','newclassic','bright'];
 
@@ -933,7 +933,7 @@ let gemSkin=store.get('sv-gemskin','classic');
 if(GEM_SKIN_ORDER.indexOf(gemSkin)<0)gemSkin='classic';
 const SKIN_SPR={};
 let skinReady=false;
-function makeSkinSprite(img,sx,sy,sw,sh){
+function makeSkinSprite(img,sx,sy,sw,sh,dim){
 const W=Math.round(sw||img.naturalWidth||img.width),H=Math.round(sh||img.naturalHeight||img.height);
 const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
 const tx=tmp.getContext('2d');
@@ -966,8 +966,10 @@ const cv=document.createElement('canvas');cv.width=cv.height=SPR_S;
 const x=cv.getContext('2d');const pad=SPR_S*.05,s=SPR_S-pad*2;
 const sc=Math.min(s/bw,s/bh),dw=bw*sc,dh=bh*sc;
 x.drawImage(tmp,minX,minY,bw,bh,(SPR_S-dw)/2,(SPR_S-dh)/2,dw,dh);
+if(dim){x.globalCompositeOperation='source-atop';
+x.fillStyle='rgba(10,18,30,'+dim+')';x.fillRect(0,0,SPR_S,SPR_S);
+x.globalCompositeOperation='source-over';}
 return cv;}
-
 
 function loadGemSkin(cb){
 const defs=Object.keys(GEM_SKIN_DEFS);let left=defs.length;
@@ -977,14 +979,14 @@ if(def.sheet){const img=new Image();
 img.onload=()=>{const cn=def.cols||3,rn=def.rows||2;
 const cw=img.naturalWidth/cn,ch=img.naturalHeight/rn;
 for(let t=0;t<TYPES;t++){const ci=def.map?def.map[t]:t;const cx=ci%cn,cy=(ci/cn)|0;
-out[t]=makeSkinSprite(img,cx*cw,cy*ch,cw,ch);}
+out[t]=makeSkinSprite(img,cx*cw,cy*ch,cw,ch,def.dim);}
 SKIN_SPR[id]=out;fin();};
 
 img.onerror=()=>{SKIN_SPR[id]=null;fin();};
 img.src=def.sheet;}
 else{let p=TYPES;
 def.files.forEach((src,t)=>{const img=new Image();
-img.onload=()=>{out[t]=makeSkinSprite(img);if(--p===0){SKIN_SPR[id]=out;fin();}};
+img.onload=()=>{out[t]=makeSkinSprite(img,0,0,0,0,def.dim);if(--p===0){SKIN_SPR[id]=out;fin();}};
 img.onerror=()=>{out[t]=null;if(--p===0){SKIN_SPR[id]=out;fin();}};
 img.src=src;});}
 });}
