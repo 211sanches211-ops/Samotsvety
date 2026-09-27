@@ -4495,7 +4495,8 @@ if(k==='gnom'&&invGnom>0){invGnom--;saveInv();return true;}
 return false;},
 giveGnom:function(){if(invGnom>=2)return false;invGnom++;saveInv();updateBadge();return true;}
 };
-  window._onLevelComplete=function(completedLevel){if(completedLevel<1)return;var roll=Math.random();var type=null;if(roll<0.05)type='gold';else if(roll<0.15)type='silver';else if(roll<0.40)type='bronze';if(!type)return;invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();setTimeout(function(){showReward(type,0);},1500);};
+  window._onLevelComplete=function(completedLevel){if(completedLevel<1)return;var roll=Math.random();var type=null;if(roll<0.02)type='gold';else if(roll<0.08)type='silver';else if(roll<0.20)type='bronze';if(!type)return;invChests.push({type:type,opened:false,id:Date.now()});saveInv();updateBadge();setTimeout(function(){showReward(type,0);},1500);};
+
 // скин при старте не применяем: его инлайн-цвета перекрывали темы
 
 setTimeout(function(){var t=document.getElementById('btnInvMenu');var g=document.getElementById('btnInvGame');
