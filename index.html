@@ -4114,7 +4114,8 @@ dispScore+=(score-dispScore)*Math.min(1,dt*7);
 hudT-=dt;if(hudT<=0){hudT=0.05;hudFrame();}}
 new ResizeObserver(fitCanvas).observe(document.querySelector('.board-frame'));
 buildSprites();buildPrism();buildMega();buildRocks();buildCols();buildCrate();
-applyGemSkin();loadGemSkin(()=>{if(gemSkin==='steampunk')applyGemSkin();paintGemSkinBtns();});
+applyGemSkin();
+setTimeout(()=>{loadGemSkin(()=>{applyGemSkin();paintGemSkinBtns();});},2900);
 buildPerfSprites();
 ICE=zeroMat();ROCK=zeroMat();COL=zeroMat();FIRE={};POISON={};POISON_AGE={};goal=makeGoal(1);
 fitCanvas();genBoard();goal=makeGoal(1);introFall();
