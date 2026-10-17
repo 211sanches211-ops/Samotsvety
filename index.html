@@ -479,6 +479,7 @@ body.lowperf .chip.zen{animation:none}
 <div class="setrow"><span>Звук</span><button class="btn ghost icon" id="btnSoundSet">🔊</button></div>
 <div class="setrow" id="installRow" hidden><span>Приложение</span><button class="btn ghost" id="btnInstall">⤓ Установить</button></div>
 <div class="setrow"><span>🎨 Тема</span><button class="btn ghost" id="btnThemeSet">Классическая</button></div>
+<div class="setrow"><span>💎 Скин камней</span><button class="btn ghost" id="btnGemSkinSet">Классика</button></div>
 <div class="setrow"><span>⚡ Слабое устройство</span><button class="btn ghost" id="btnPerfSet" title="Меньше частиц и blur">Выкл</button></div>
 <div class="setrow"><span>📖 Обучение</span><button class="btn ghost" id="btnTutorialSet" title="Обучающие плашки">Вкл</button></div>
 <div class="setrow" id="devCodeRow" hidden style="display:none"><span>🔑 Ключ</span><input id="devCodeInput" maxlength="20" placeholder="—" autocomplete="off"></div>
@@ -992,8 +993,12 @@ applyGemSkin();paintGemSkinBtns();
 if(!silent&&typeof showToast==='function')
 showToast(id==='classic'?'💎 Скин: Классика':('⚙️ Скин: '+GEM_SKIN_DEFS[id].name));}
 function paintGemSkinBtns(){
-const d=document.getElementById('devGemSkin');
-if(d)d.textContent=(gemSkin==='classic'?'Классика':(GEM_SKIN_DEFS[gemSkin]?GEM_SKIN_DEFS[gemSkin].name:gemSkin));}
+    const skinName = (gemSkin==='classic'?'Классика':(GEM_SKIN_DEFS[gemSkin]?GEM_SKIN_DEFS[gemSkin].name:gemSkin));
+    const d=document.getElementById('devGemSkin');
+    if(d) d.textContent=skinName;
+    const s=document.getElementById('btnGemSkinSet');
+    if(s) s.textContent=skinName;
+}
 let PRISM=null;
 function buildPrism(){
 const S=SPR_S,cv=document.createElement('canvas');cv.width=cv.height=S;
@@ -3626,6 +3631,7 @@ const NEWS=[
   {id:'slot',ico:'🎰',t:'Шахта фортуны',d:'Рулетка в «Магазине»: призы от монет до джекпоста. Первый спин дня за полцены, гарантия приза каждые 8 спинов.'},
 
 {id:'crateswap',ico:'📦',t:'Ящик можно менять!',d:'Теперь ящик меняется местами с соседним камнем, если после обмена камень соберёт линию на месте ящика. Гравитация плюс хитрые свапы — доставка груза стала настоящей головоломкой.'},
+{id:'newskin',ico:'💎',t:'Новые скины камней',d:'Теперь можно менять внешний вид кристаллов! Загляни в Настройки → «Скин камней».'},
 ];
 function newsSeen(){try{return JSON.parse(store.get('sv-news-seen','[]'))||[]}catch(e){return[]}}
 function newsMarkSeen(ids){const s=new Set(newsSeen());ids.forEach(i=>s.add(i));store.set('sv-news-seen',JSON.stringify([...s]));}
@@ -3988,6 +3994,14 @@ const avail=GEM_SKIN_ORDER.filter(id=>id==='classic'||skinAvailable(id));
 if(avail.length<2){if(typeof showToast==='function')showToast('⚙️ Скины не загружены: проверь файлы скинов в корне репозитория');return;}
 const i=avail.indexOf(gemSkin);
 setGemSkin(avail[(i+1)%avail.length]);
+});
+  const setGS=document.getElementById('btnGemSkinSet');
+if(setGS) setGS.addEventListener('click',()=>{
+    Snd.init();Snd.tick();
+    const avail=GEM_SKIN_ORDER.filter(id=>id==='classic'||skinAvailable(id));
+    if(avail.length<2){showToast('⚙️ Скины не загружены: проверь файлы в корне');return;}
+    const i=avail.indexOf(gemSkin);
+    setGemSkin(avail[(i+1)%avail.length]);
 });
   const dvN=document.getElementById('devNova');
 if(dvN)dvN.addEventListener('click',()=>{
