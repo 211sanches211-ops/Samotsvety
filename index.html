@@ -554,6 +554,14 @@ body.lowperf .chip.zen{animation:none}
 <div class="ovbtns"><button class="btn big" id="btnNewsClose">Отлично!</button></div>
 </div>
 </div>
+<div class="overlay hidden" id="skinsOv">
+<div class="card">
+<h2 class="card-title" style="font-size:clamp(20px,5vw,28px)">💎 Скины камней</h2>
+<p class="card-sub" style="margin-bottom:14px">Выбери, как будут выглядеть самоцветы.</p>
+<div id="skinsList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px"></div>
+<div class="ovbtns"><button class="btn big" id="btnSkinsClose">Закрыть</button></div>
+</div>
+</div>  
 <div class="overlay hidden" id="devOv">
 <div class="card">
 <h2 class="card-title" style="font-size:clamp(20px,5vw,28px)">📊 Диагностика</h2>
@@ -916,9 +924,9 @@ return cv;}
 function buildSprites(){for(let t=0;t<TYPES;t++)SPR[t]=makeGem(t);}
 // ===== СКИНЫ КАМНЕЙ (картинки), v2: мульти-скин =====
 const GEM_SKIN_DEFS={
-steampunk:{name:'Стимпанк',files:['skin0.png','skin1.png','skin2.png','skin3.png','skin4.png','skin5.png'],dim:.12},
-newclassic:{name:'New Classic',sheet:'skin-newclassic.png',map:[1,4,2,0,3,5],dim:.12},
-bright:{name:'Сияние',sheet:'skin-bright.png',cols:3,rows:2,map:[0,2,1,3,5,4],dim:.22},
+steampunk:{name:'Стимпанк',price:50000,files:['skin0.png','skin1.png','skin2.png','skin3.png','skin4.png','skin5.png'],dim:.12},
+newclassic:{name:'New Classic',price:0,sheet:'skin-newclassic.png',map:[1,4,2,0,3,5],dim:.12},
+bright:{name:'Сияние',price:50000,sheet:'skin-bright.png',cols:3,rows:2,map:[0,2,1,3,5,4],dim:.22},
 };
 const GEM_SKIN_ORDER=['classic','steampunk','newclassic','bright'];
 
@@ -999,6 +1007,125 @@ function paintGemSkinBtns(){
     const s=document.getElementById('btnGemSkinSet');
     if(s) s.textContent=skinName;
 }
+function isSkinOwned(id){
+    if(id==='classic' || id==='newclassic') return true; // Бесплатные
+    const owned = JSON.parse(store.get('sv-gemskins-owned','[]')) || [];
+    return owned.includes(id);
+}
+
+function renderSkinsShop(){
+    const box = $('#skinsList');
+    if(!box) return;
+    box.innerHTML = '';
+    const allSkins = ['classic', 'newclassic', 'steampunk', 'bright'];
+
+    allSkins.forEach(id => {
+        const isClassic = id === 'classic';
+        const def = isClassic ? { name: 'Классика', price: 0 } : GEM_SKIN_DEFS[id];
+        if(!def) return;
+
+        const owned = isSkinOwned(id);
+        const active = gemSkin === id;
+
+        const row = document.createElement('div');
+        row.className = 'setrow';
+        row.style.flexDirection = 'column';
+        row.style.alignItems = 'stretch';
+        row.style.gap = '10px';
+        row.style.padding = '12px';
+
+        // Заголовок и статус
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
+        header.innerHTML = `<b style="color:${active ? '#ffd66b' : '#cfe6f4'}; font-size: 15px;">${def.name}</b>`;
+        if (active) {
+            header.innerHTML += `<span style="color:#2ee6a8; font-size:11px; font-weight:800; border:1px solid #2ee6a8; padding:2px 8px; border-radius:99px;">АКТИВЕН</span>`;
+        }
+        row.appendChild(header);
+
+        // Предпросмотр
+        const preview = document.createElement('div');
+        preview.style.display = 'flex';
+        preview.style.justifyContent = 'center';
+        preview.style.gap = '8px';
+        preview.style.background = 'rgba(0,0,0,0.2)';
+        preview.style.padding = '8px';
+        preview.style.borderRadius = '10px';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 6 * 36;
+        canvas.height = 36;
+        canvas.style.width = '100%';
+        canvas.style.maxWidth = '250px';
+        const ctx = canvas.getContext('2d');
+
+        let skinSprites = null;
+        if (id === gemSkin) {
+            skinSprites = SPR; // Текущий скин
+        } else if (id === 'classic') {
+            skinSprites = [];
+            for(let i=0; i<6; i++) skinSprites.push(makeGem(i)); // Генерируем базовые
+        } else {
+            skinSprites = SKIN_SPR[id]; // Загруженные из файлов
+        }
+
+        if (skinSprites && skinSprites.some(s => s)) {
+            for (let i = 0; i < 6; i++) {
+                if (skinSprites[i]) ctx.drawImage(skinSprites[i], i * 36, 0, 36, 36);
+            }
+        } else {
+            ctx.fillStyle = '#ff8b8b';
+            ctx.font = '12px Nunito';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Нет картинок', canvas.width/2, canvas.height/2);
+        }
+        preview.appendChild(canvas);
+        row.appendChild(preview);
+
+        // Кнопка действия
+        const btn = document.createElement('button');
+        btn.className = 'btn ' + (active ? 'ghost' : (owned ? 'teal' : ''));
+        btn.style.width = '100%';
+        btn.style.padding = '10px';
+        
+        if (active) {
+            btn.textContent = 'Выбран';
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+        } else if (owned) {
+            btn.textContent = 'Применить';
+            btn.onclick = () => {
+                setGemSkin(id);
+                renderSkinsShop();
+                Snd.tick();
+            };
+        } else {
+            btn.textContent = 'Купить за ' + fmt(def.price) + ' 💰';
+            btn.onclick = () => {
+                const coins = window.InvAPI ? InvAPI.coins() : 0;
+                if (coins >= def.price) {
+                    if(confirm('Купить скин "'+def.name+'" за '+fmt(def.price)+' 💰?')) {
+                        InvAPI.addCoins(-def.price);
+                        const ownedArr = JSON.parse(store.get('sv-gemskins-owned','[]')) || [];
+                        ownedArr.push(id);
+                        store.set('sv-gemskins-owned', JSON.stringify(ownedArr));
+                        setGemSkin(id);
+                        renderSkinsShop();
+                        if(Snd.on){Snd.init();Snd.coins();}
+                    }
+                } else {
+                    Snd.bad();
+                    showToast('💸 Не хватает монет!');
+                }
+            };
+        }
+        row.appendChild(btn);
+        box.appendChild(row);
+    });
+}  
 let PRISM=null;
 function buildPrism(){
 const S=SPR_S,cv=document.createElement('canvas');cv.width=cv.height=S;
@@ -3995,13 +4122,17 @@ if(avail.length<2){if(typeof showToast==='function')showToast('⚙️ Скины
 const i=avail.indexOf(gemSkin);
 setGemSkin(avail[(i+1)%avail.length]);
 });
-  const setGS=document.getElementById('btnGemSkinSet');
+const setGS=document.getElementById('btnGemSkinSet');
 if(setGS) setGS.addEventListener('click',()=>{
     Snd.init();Snd.tick();
-    const avail=GEM_SKIN_ORDER.filter(id=>id==='classic'||skinAvailable(id));
-    if(avail.length<2){showToast('⚙️ Скины не загружены: проверь файлы в корне');return;}
-    const i=avail.indexOf(gemSkin);
-    setGemSkin(avail[(i+1)%avail.length]);
+    renderSkinsShop(); // Вызываем отрисовку перед показом
+    $('#skinsOv').classList.remove('hidden');
+});
+// Кнопка закрытия окна
+const btnSkinsClose = document.getElementById('btnSkinsClose');
+if(btnSkinsClose) btnSkinsClose.addEventListener('click', ()=>{
+    Snd.init();Snd.tick();
+    $('#skinsOv').classList.add('hidden');
 });
   const dvN=document.getElementById('devNova');
 if(dvN)dvN.addEventListener('click',()=>{
