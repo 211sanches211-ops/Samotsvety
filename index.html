@@ -921,8 +921,8 @@ bright:{name:'Сияние',sheet:'skin-bright.png',cols:3,rows:2,map:[0,2,1,3,5
 };
 const GEM_SKIN_ORDER=['classic','steampunk','newclassic','bright'];
 
-let gemSkin=store.get('sv-gemskin','classic');
-if(GEM_SKIN_ORDER.indexOf(gemSkin)<0)gemSkin='classic';
+let gemSkin=store.get('sv-gemskin','newclassic');  // ← изменили 'classic' на 'newclassic'
+if(GEM_SKIN_ORDER.indexOf(gemSkin)<0)gemSkin='newclassic'; // ← и здесь
 const SKIN_SPR={};
 let skinReady=false;
 function makeSkinSprite(img,sx,sy,sw,sh,dim){
