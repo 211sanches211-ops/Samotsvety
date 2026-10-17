@@ -1117,11 +1117,12 @@ function renderSkinsShop(){
                     showSkinBuyConfirm(id, def.name, def.price);
                 };
             } else {
-                btn.textContent = 'Мало монет';
+                // Если денег не хватает, пишем цену, чтобы игрок знал, сколько копить
+                btn.textContent = 'Нужно ' + fmt(def.price) + ' 💰';
                 btn.style.background = '#2a3a46';
-                btn.style.color = '#5f87a0';
+                btn.style.color = '#ff8b8b'; // Сделали текст красноватым для акцента
                 btn.style.boxShadow = 'none';
-                btn.style.opacity = '0.7';
+                btn.style.opacity = '0.8';
             }
         }
         row.appendChild(btn);
